@@ -2,7 +2,7 @@
 
 Internal tracking metadata for mentors. Not read by the resource building the project.
 
-- **Tier:** Mid
+- **Tier:** Senior
 - **Categories and subcategories targeted:** AI and LLM Fundamentals (Embeddings and Vector Search, RAG Architecture, Knowledge Graphs, Chunking and Retrieval Quality, Evaluation); Programming and Stack Fundamentals (API Construction, Data Persistence); SDLC and Engineering Practices (Test Driven Development, Development Lifecycle, Version Control); Communication and Client Readiness (Technical Explanation)
 - **Role, seniority, and technical tags:** RAG, embeddings, vector databases, knowledge graphs, vectorless retrieval, multimodal RAG, evaluation, TDD
 - **Start date:** [date]

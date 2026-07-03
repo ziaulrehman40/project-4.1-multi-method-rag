@@ -1,10 +1,10 @@
-# Project 4.1: RAG Techniques Lab
+# Project 4.1: Multi Method RAG
 
 | Field | Detail |
 |---|---|
 | Project Number | 4.1 |
-| Project Name | RAG Techniques Lab |
-| Tier | Mid |
+| Project Name | Multi Method RAG |
+| Tier | Senior |
 | Deadline | 10 working days (2 weeks) from your start date |
 | Status | Active |
 | Tags | RAG, Embeddings, Vector Databases, Knowledge Graphs, Vectorless Retrieval, Multimodal RAG, Chunking, Reranking, Evaluation, Test Driven Development, Prompt Engineering, Git Workflow |
@@ -13,7 +13,7 @@
 
 ## Overview
 
-You are building a RAG Techniques Lab: one small web application that answers questions about a set of documents, and lets you swap between four different ways of doing retrieval and see exactly how each one behaves.
+You are building Multi Method RAG: one small web application that answers questions about a set of documents, and lets you swap between four different ways of doing retrieval and see exactly how each one behaves.
 
 This is a practice and reference project. The point is not to ship a product. The point is to build each retrieval technique yourself, once, on the same documents, so you understand what each one actually does, where it shines, and where it breaks. By the end you will have a single app where you can ask the same question four different ways and watch the chunks, the reasoning, the token usage, and the answer change in front of you.
 
@@ -223,7 +223,7 @@ Artifacts, kept light: `docs/design.md` and `docs/requirements.md` grow one shor
 ## Repository structure
 
 ```
-project-4.1-rag-techniques-lab/
+project-4.1-multi-method-rag/
   README.md              This brief. Read it, do not edit it.
   PRESENTATION.md        Your submission. All links, artifacts, and proof go here.
   LEARNING_LOG.md        One short wrap up per area you learn.
