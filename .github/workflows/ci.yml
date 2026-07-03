@@ -1,0 +1,15 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: add language setup, for example actions/setup-node or actions/setup-python
+      # TODO: install dependencies
+      # TODO: run tests
+      - run: echo "Fill in setup, install, and test commands for this project"
