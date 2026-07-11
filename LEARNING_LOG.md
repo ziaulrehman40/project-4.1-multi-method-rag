@@ -4,4 +4,4 @@ One entry per skill. Use the Learning Sprint wrap up from your teach-me skill: a
 
 | Date | Skill | Confidence (1-3) | Reflection |
 |---|---|---|---|
-| | | | |
+| Jul 11, 2026 | RAG architecture | 3 | Basic concepts of RAG are mature now, i had some miss-understandings which are clear. And also the teach me skill has been very helpful too. |
