@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Compliance Chat{% endblock %}</title>
+  <script src="https://unpkg.com/htmx.org@2.0.8"></script>
+  <style>
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #172033; background: #f4f7fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    a { color: #174ea6; }
+    button, input, textarea { font: inherit; }
+    button { border: 0; border-radius: .55rem; padding: .65rem .9rem; cursor: pointer; background: #174ea6; color: white; }
+    button.danger { background: #a52626; }
+    .shell { width: min(960px, calc(100% - 2rem)); margin: 0 auto; }
+    header { background: #13213c; color: white; padding: .8rem 0; }
+    header .shell { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    header a { color: white; text-decoration: none; font-weight: 700; }
+    header form { margin: 0; }
+    main { padding: 2rem 0 4rem; }
+    .card { background: white; border: 1px solid #dce3ee; border-radius: .8rem; padding: 1.1rem; box-shadow: 0 5px 18px rgba(29, 48, 78, .06); }
+    .stack { display: grid; gap: 1rem; }
+    .row { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+    .row.space { justify-content: space-between; }
+    input, textarea { width: 100%; border: 1px solid #b8c4d6; border-radius: .55rem; padding: .7rem; background: white; }
+    .inline-input { width: min(22rem, 100%); }
+    .muted { color: #657189; }
+    .message { max-width: 82%; border-radius: .8rem; padding: .85rem 1rem; white-space: pre-wrap; }
+    .message.user { margin-left: auto; background: #174ea6; color: white; }
+    .message.assistant { background: white; border: 1px solid #dce3ee; }
+    .message small { display: block; opacity: .72; margin-bottom: .35rem; text-transform: capitalize; }
+    .htmx-indicator { display: none; }
+    .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: inline; }
+    @media (max-width: 600px) { .message { max-width: 94%; } }
+  </style>
+</head>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <header>
+    <div class="shell">
+      <a href="{% url 'conversation-list' %}">Compliance Chat</a>
+      {% if request.user.is_authenticated %}
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit">Log out</button>
+        </form>
+      {% endif %}
+    </div>
+  </header>
+  <main class="shell">{% block content %}{% endblock %}</main>
+</body>
+</html>

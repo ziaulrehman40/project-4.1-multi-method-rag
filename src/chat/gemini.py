@@ -1,0 +1,27 @@
+import os
+
+from google import genai
+
+
+# The plan's gemini-2.5-flash pin now returns 404 for new users. Google's stable
+# alias keeps Stage 0 on the current general-purpose Flash model.
+MODEL = "gemini-flash-latest"
+
+
+def generate_reply(history: list[dict]) -> str:
+    """Generate one plain Gemini reply from persisted conversation history.
+
+    Stage 0 deliberately performs no retrieval, embedding, or document lookup.
+    """
+    contents = [
+        {
+            "role": "model" if item["role"] == "assistant" else "user",
+            "parts": [{"text": item["content"]}],
+        }
+        for item in history
+    ]
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    response = client.models.generate_content(model=MODEL, contents=contents)
+    if not response.text:
+        raise RuntimeError("Gemini returned an empty response.")
+    return response.text

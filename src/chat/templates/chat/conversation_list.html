@@ -1,0 +1,35 @@
+{% extends "chat/base.html" %}
+{% block title %}Conversations · Compliance Chat{% endblock %}
+{% block content %}
+  <div class="row space">
+    <div><h1>Your conversations</h1><p class="muted">Plain Gemini chat. Retrieval arrives in Stage 1.</p></div>
+    <form method="post" action="{% url 'conversation-create' %}">
+      {% csrf_token %}<button type="submit">New conversation</button>
+    </form>
+  </div>
+  <div class="stack">
+    {% for conversation in conversations %}
+      <article class="card">
+        <div class="row space">
+          <div>
+            <a href="{% url 'conversation-detail' conversation.id %}"><strong>{{ conversation.title }}</strong></a>
+            <div class="muted"><small>Updated {{ conversation.updated_at|date:"M j, Y, P" }}</small></div>
+          </div>
+          <div class="row">
+            <form method="post" action="{% url 'conversation-rename' conversation.id %}" class="row">
+              {% csrf_token %}
+              <input class="inline-input" name="title" value="{{ conversation.title }}" maxlength="200" required aria-label="Conversation title">
+              <button type="submit">Rename</button>
+            </form>
+            <form method="post" action="{% url 'conversation-delete' conversation.id %}" onsubmit="return confirm('Delete this conversation and its history?')">
+              {% csrf_token %}<button type="submit" class="danger">Delete</button>
+            </form>
+          </div>
+        </div>
+      </article>
+    {% empty %}
+      <div class="card"><h2>No conversations yet</h2><p class="muted">Create one to start a private compliance chat.</p></div>
+    {% endfor %}
+  </div>
+{% endblock %}
+
