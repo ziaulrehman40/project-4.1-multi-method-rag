@@ -28,6 +28,17 @@ short concept sprint -> light design note -> failing test -> build -> visible de
 
 This matches the README's [Project Phases](README.md#project-phases): Plan, Build, Test, Show.
 
+## Project Workflow and Deliverables (from README "How this works")
+
+This governs *how* the work is delivered, alongside the stage sequence below.
+
+- **Work in a fork.** Fork the project repository and do all work inside your fork. Do not push to the upstream org repo.
+- **Commit per stage** and save proof (a link or screenshot) into `proof/` as each stage completes.
+- **One-time docs setup:** write a short `docs/srs.md` (requirements spec) early, and maintain `docs/system-diagram.drawio` as a simple architecture diagram that evolves each stage.
+- **Keep `LEARNING_LOG.md` updated**, one entry per area, produced with the teach-me skill.
+- **Final deliverable:** fill in `PRESENTATION.md` with every link, artifact, and proof.
+- **Before the call:** add your mentor as a collaborator on your fork, then schedule and present.
+
 ## Phase 0: RAG Orientation
 
 README links:
@@ -406,6 +417,7 @@ Use this checklist for every stage.
 - Add or update the stage section in `docs/requirements.md`.
 - Add or update the stage section in `docs/design.md`.
 - Add or update `docs/test-plan.md`.
+- Update `docs/system-diagram.drawio` to reflect the new stage.
 - Write the failing test first.
 - Build the smallest working version.
 - Make the internal process visible in the UI.
