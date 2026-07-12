@@ -79,4 +79,10 @@ The `rag` app holds retrieval, kept separate from the `chat` generation seam. Pi
   (so changing strategy/size re-ingests). Runs on container start; no shell needed on Render.
 - **Embedding resilience** (`rag/embeddings.py`) — batches (<=32) and retries with backoff;
   holds a strong client reference (a temporary `genai.Client` is GC'd mid-request).
-- **Pending in Stage 1:** hybrid search (dense + BM25), reranking, citations, transparency UI.
+- **Hybrid search** (`rag/retrieval.py`) — `dense_search` (pgvector cosine) + `sparse_search`
+  (Postgres full-text on a `search_vector` column, populated at ingest) fused by Reciprocal
+  Rank Fusion (`_rrf`, rank-based so the two score scales don't need normalising). Dense
+  handles meaning, sparse handles exact terms/IDs. Note: the sparse ranker is Postgres's
+  built-in full-text rank (TF-IDF-family), not literal BM25 — sufficient because RRF only
+  uses rank order. `search(method="dense"|"sparse"|"hybrid")` dispatches.
+- **Pending in Stage 1:** reranking, citations, transparency UI.

@@ -1,3 +1,5 @@
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from pgvector.django import VectorField
 
@@ -36,10 +38,16 @@ class DocumentChunk(models.Model):
     ordinal = models.IntegerField()
     text = models.TextField()
     embedding = VectorField(dimensions=EMBEDDING_DIM)
+    # Sparse/keyword side of hybrid search: a Postgres full-text vector built from `text`.
+    # Populated at ingest; queried with SearchQuery + SearchRank (see rag/retrieval.py).
+    search_vector = SearchVectorField(null=True)
 
     class Meta:
         ordering = ["source", "ordinal"]
-        indexes = [models.Index(fields=["source"])]
+        indexes = [
+            models.Index(fields=["source"]),
+            GinIndex(fields=["search_vector"]),  # fast keyword lookup
+        ]
 
     def __str__(self):
         return f"{self.source}#{self.ordinal}: {self.text[:40]}"

@@ -52,6 +52,7 @@ def _overlap_tail(text, overlap):
 
 
 def _cosine(a, b):
+    # cosine similarity = dot product divided by the product of the two vector lengths.
     dot = sum(x * y for x, y in zip(a, b))
     na = math.sqrt(sum(x * x for x in a))
     nb = math.sqrt(sum(y * y for y in b))
@@ -63,10 +64,11 @@ def _percentile(values, pct):
     if not values:
         return 0.0
     ordered = sorted(values)
-    rank = (len(ordered) - 1) * (pct / 100.0)
+    rank = (len(ordered) - 1) * (pct / 100.0)  # fractional index of the percentile
     low, high = math.floor(rank), math.ceil(rank)
     if low == high:
         return ordered[int(rank)]
+    # rank falls between two samples: blend them by how far along it sits.
     return ordered[low] + (ordered[high] - ordered[low]) * (rank - low)
 
 
@@ -166,7 +168,8 @@ def semantic_chunks(
 
     # Distance between each adjacent pair; a large distance == a topic boundary.
     distances = [1 - _cosine(vectors[i], vectors[i + 1]) for i in range(len(vectors) - 1)]
-    threshold = _percentile(distances, threshold_percentile)
+    threshold = _percentile(distances, threshold_percentile)  # only the sharpest jumps qualify
+    # A boundary sits *before* sentence i+1 wherever that gap is a top-percentile jump.
     boundaries = {i + 1 for i, d in enumerate(distances) if d >= threshold and d > 0}
 
     groups = []

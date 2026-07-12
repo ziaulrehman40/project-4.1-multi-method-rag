@@ -30,6 +30,16 @@ def test_ingest_creates_chunks_with_embeddings(monkeypatch):
     assert embed_calls, "embeddings should have been generated on first ingest"
 
 
+def test_ingest_populates_search_vector(monkeypatch):
+    monkeypatch.setattr("rag.management.commands.ingest_docs.embed_texts", _fake_embed)
+
+    call_command("ingest_docs")
+
+    # Every stored chunk must have a full-text vector for the sparse/keyword search path.
+    assert DocumentChunk.objects.exists()
+    assert not DocumentChunk.objects.filter(search_vector__isnull=True).exists()
+
+
 def test_ingest_is_idempotent_on_unchanged_docs(monkeypatch):
     def counting(texts, _state={"n": 0}):
         _state["n"] += 1

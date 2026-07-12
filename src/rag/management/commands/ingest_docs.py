@@ -13,6 +13,7 @@ import hashlib
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib.postgres.search import SearchVector
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
@@ -74,6 +75,10 @@ class Command(BaseCommand):
                     DocumentChunk(source=path.name, ordinal=index, text=chunk_text, embedding=vector)
                     for index, (chunk_text, vector) in enumerate(zip(chunks, vectors))
                 ]
+            )
+            # Build the full-text (sparse) vector from the stored text for keyword search.
+            DocumentChunk.objects.filter(source=path.name).update(
+                search_vector=SearchVector("text")
             )
             IngestedDocument.objects.update_or_create(
                 source=path.name,

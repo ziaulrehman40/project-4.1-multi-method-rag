@@ -1,13 +1,15 @@
-"""Demo command: inspect what vector retrieval returns for a question.
+"""Demo command: inspect what retrieval returns for a question.
 
     python manage.py rag_query "How fast must a breach be reported?"
+    python manage.py rag_query "Article 33 breach" --method sparse
+    python manage.py rag_query "..." --method dense
 
-Not used in production; a quick way to eyeball retrieval quality from the CLI.
+Not used in production; a quick way to eyeball and compare retrieval methods from the CLI.
 """
 
 from django.core.management.base import BaseCommand
 
-from rag.retrieval import retrieve
+from rag.retrieval import search
 
 
 class Command(BaseCommand):
@@ -16,16 +18,26 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("question", nargs="+", help="The question to retrieve for.")
         parser.add_argument("-k", type=int, default=5, help="How many chunks to return.")
+        parser.add_argument(
+            "--method",
+            choices=["dense", "sparse", "hybrid"],
+            default="hybrid",
+        )
 
     def handle(self, *args, **options):
         question = " ".join(options["question"])
-        hits = retrieve(question, k=options["k"])
+        hits = search(question, method=options["method"], k=options["k"])
         if not hits:
             self.stdout.write("No chunks found. Have you run `ingest_docs`?")
             return
-        self.stdout.write(f"Query: {question}\n")
+        self.stdout.write(f"Query ({options['method']}): {question}\n")
         for hit in hits:
-            snippet = hit.text[:400] + ("..." if len(hit.text) > 400 else "")
-            self.stdout.write(
-                f"\n[distance {hit.distance:.3f}] {hit.source} (chunk #{hit.ordinal})\n{snippet}"
-            )
+            # Different methods annotate a different score; show whichever is present.
+            if hasattr(hit, "rrf_score"):
+                score = f"rrf {hit.rrf_score:.4f}"
+            elif hasattr(hit, "distance"):
+                score = f"distance {hit.distance:.3f}"
+            else:
+                score = f"rank {hit.rank:.3f}"
+            snippet = hit.text[:300] + ("..." if len(hit.text) > 300 else "")
+            self.stdout.write(f"\n[{score}] {hit.source} (chunk #{hit.ordinal})\n{snippet}")

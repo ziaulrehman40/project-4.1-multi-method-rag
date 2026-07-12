@@ -55,6 +55,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     if not texts:
         return []
     vectors: list[list[float]] = []
+    # Send in slices of MAX_BATCH so we stay under the API's per-request batch cap.
     for start in range(0, len(texts), MAX_BATCH):
         vectors.extend(_embed_batch(texts[start : start + MAX_BATCH]))
     return vectors

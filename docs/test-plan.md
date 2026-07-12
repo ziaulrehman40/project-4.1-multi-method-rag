@@ -69,4 +69,8 @@ Retrieval is tested with the embedding API mocked, so tests are deterministic an
 | IN-03 | Changing strategy re-ingests | Different chunking config forces re-embed | Pass |
 | EM-01 | Large input split into batches (<=32) | Correct batch sizes, order preserved | Pass |
 | EM-02 | Transient embedding error retried / gives up | Retries then succeeds; raises after max | Pass |
-| RT-01 | Retrieval returns nearest chunk first | Ordered by cosine distance; respects k | Pass |
+| RT-01 | Dense retrieval returns nearest chunk first | Ordered by cosine distance; respects k | Pass |
+| RT-02 | Sparse retrieval finds keyword match; no fuzzy match | Keyword chunk first; unrelated query returns none | Pass |
+| RT-03 | RRF fuses two ranked lists by rank | Lesson example fuses to A, C, B, D with expected scores | Pass |
+| RT-04 | Hybrid merges dense + sparse | Both methods' chunks present, ordered by fused score | Pass |
+| IN-04 | Ingest populates full-text search_vector | Every chunk has a non-null search_vector | Pass |
