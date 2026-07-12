@@ -85,4 +85,9 @@ The `rag` app holds retrieval, kept separate from the `chat` generation seam. Pi
   handles meaning, sparse handles exact terms/IDs. Note: the sparse ranker is Postgres's
   built-in full-text rank (TF-IDF-family), not literal BM25 — sufficient because RRF only
   uses rank order. `search(method="dense"|"sparse"|"hybrid")` dispatches.
-- **Pending in Stage 1:** reranking, citations, transparency UI.
+- **Reranking** (`rag/reranking.py`) — a precision pass over the retrieved pool: an
+  LLM-as-reranker (Gemini) scores each candidate's relevance to the query 0–10 in one call,
+  reorders, and keeps top-n. Chosen over a dedicated cross-encoder to avoid heavy deps on the
+  free tier / Render. Fallback is explicit, not silent: on failure it logs a warning and
+  returns retrieval order with `reranked=False` (a `RerankOutcome`) so the caller/UI can flag it.
+- **Pending in Stage 1:** citations, transparency UI.

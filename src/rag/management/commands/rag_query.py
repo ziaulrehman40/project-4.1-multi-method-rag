@@ -9,6 +9,7 @@ Not used in production; a quick way to eyeball and compare retrieval methods fro
 
 from django.core.management.base import BaseCommand
 
+from rag.reranking import rerank
 from rag.retrieval import search
 
 
@@ -23,17 +24,38 @@ class Command(BaseCommand):
             choices=["dense", "sparse", "hybrid"],
             default="hybrid",
         )
+        parser.add_argument(
+            "--rerank",
+            action="store_true",
+            help="Rerank a larger candidate pool with the LLM, then keep k.",
+        )
 
     def handle(self, *args, **options):
         question = " ".join(options["question"])
-        hits = search(question, method=options["method"], k=options["k"])
+
+        if options["rerank"]:
+            # Retrieve a wider pool, then let the reranker pick the best k.
+            candidates = search(question, method=options["method"], k=10)
+            outcome = rerank(question, candidates, top_n=options["k"])
+            if not outcome.reranked:
+                self.stderr.write(
+                    self.style.WARNING(
+                        f"WARNING: reranking failed ({outcome.note}); showing retrieval order."
+                    )
+                )
+            hits = outcome.chunks
+        else:
+            hits = search(question, method=options["method"], k=options["k"])
+
         if not hits:
             self.stdout.write("No chunks found. Have you run `ingest_docs`?")
             return
         self.stdout.write(f"Query ({options['method']}): {question}\n")
         for hit in hits:
             # Different methods annotate a different score; show whichever is present.
-            if hasattr(hit, "rrf_score"):
+            if hasattr(hit, "rerank_score"):
+                score = f"rerank {hit.rerank_score:.1f}"
+            elif hasattr(hit, "rrf_score"):
                 score = f"rrf {hit.rrf_score:.4f}"
             elif hasattr(hit, "distance"):
                 score = f"distance {hit.distance:.3f}"

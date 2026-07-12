@@ -74,3 +74,6 @@ Retrieval is tested with the embedding API mocked, so tests are deterministic an
 | RT-03 | RRF fuses two ranked lists by rank | Lesson example fuses to A, C, B, D with expected scores | Pass |
 | RT-04 | Hybrid merges dense + sparse | Both methods' chunks present, ordered by fused score | Pass |
 | IN-04 | Ingest populates full-text search_vector | Every chunk has a non-null search_vector | Pass |
+| RR-01 | Rerank reorders by score and keeps top-n | Candidates ordered by LLM score; top-n returned | Pass |
+| RR-02 | Rerank fallback is not silent | On failure: retrieval order, reranked=False, warning logged | Pass |
+| RR-03 | Rerank handles empty input | Returns empty, reranked=True | Pass |
