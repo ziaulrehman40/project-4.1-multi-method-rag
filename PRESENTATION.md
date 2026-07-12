@@ -33,7 +33,7 @@ One line per skill: what you learned and your confidence from one to three. Pull
 ## Stage progress
 
 - [x] Stage 0 — App skeleton and chat (deployed, tested)
-- [ ] Stage 1 — Embedding-based RAG
+- [x] Stage 1 — Embedding-based RAG (chunking comparison, hybrid search, reranking, cited answers, transparency)
 - [ ] Stage 2 — Knowledge-graph RAG
 - [ ] Stage 3 — Vectorless RAG
 - [ ] Stage 4 — Multimodal RAG
