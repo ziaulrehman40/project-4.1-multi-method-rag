@@ -1,7 +1,1 @@
-{% if messages %}
-  {% for item in messages %}
-    <article class="message {{ item.role }}"><small>{{ item.get_role_display }} · {{ item.created_at|date:"P" }}</small>{{ item.content }}</article>
-  {% endfor %}
-{% else %}
-  <article class="message {{ message.role }}"><small>{{ message.get_role_display }} · {{ message.created_at|date:"P" }}</small>{{ message.content }}</article>
-{% endif %}
+<article class="message {{ message.role }}"><small>{{ message.get_role_display }} · {{ message.created_at|date:"P" }}</small>{{ message.content }}</article>

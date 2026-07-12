@@ -22,7 +22,7 @@ Gemini network behavior are deliberately excluded from automated tests.
 | M-03 | Delete conversation | Related messages cascade-delete | Pass |
 | V-01 | Anonymous list request | Redirects to `/login/?next=/` | Pass |
 | V-02 | Create conversation | Owned record is created and detail redirect returned | Pass |
-| V-03 | Load detail history | Persisted user and assistant text is rendered | Pass |
+| V-03 | Load detail history | Each persisted user and assistant message is rendered exactly once | Pass |
 | V-04 | Submit a message | Both roles persist; mock called once with full history | Pass |
 | V-05 | Rename conversation | Title changes | Pass |
 | V-06 | Delete conversation | Record disappears and no longer renders in list | Pass |
@@ -39,7 +39,7 @@ Gemini network behavior are deliberately excluded from automated tests.
 | L-03 | Complete a Gemini call | Model/count/timing metadata is logged without content or keys | Pass |
 
 Run: `.venv/bin/python -m pytest -q` with the Stage 0 environment configured.
-Initial Stage 0 result: **13 passed**. Post-audit result: **29 passed**, including
+Initial Stage 0 result: **13 passed**. Post-audit result: **32 passed**, including
 all-route authentication, HTMX partials, full-history payloads, provider mapping/failure
 atomicity, blank input, and database health.
 

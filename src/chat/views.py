@@ -128,7 +128,7 @@ def message_create(request, conversation_id):
     if request.headers.get("HX-Request") == "true":
         return render(
             request,
-            "chat/_message.html",
+            "chat/_message_turn.html",
             {"messages": [user_message, assistant_message]},
         )
     return redirect("conversation-detail", conversation_id=conversation.id)

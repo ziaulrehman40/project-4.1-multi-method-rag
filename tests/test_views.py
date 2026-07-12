@@ -57,8 +57,8 @@ def test_load_history(client, user):
     response = client.get(reverse("conversation-detail", args=[conversation.id]))
 
     assert response.status_code == 200
-    assert b"Explain SOC 2 controls." in response.content
-    assert b"SOC 2 controls support trust service criteria." in response.content
+    assert response.content.count(b"Explain SOC 2 controls.") == 1
+    assert response.content.count(b"SOC 2 controls support trust service criteria.") == 1
 
 
 def test_detail_configures_htmx_to_render_provider_errors(client, user):

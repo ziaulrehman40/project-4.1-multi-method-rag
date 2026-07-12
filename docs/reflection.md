@@ -31,3 +31,8 @@ authorization and provider-boundary coverage, and made a failed Gemini turn atom
 added a database-backed health endpoint, strict `DATABASE_URL` startup validation, safer
 container signal handling, and production/container checks. PostgreSQL 16.8 and pgvector
 0.8.0 were verified locally; pgvector remains intentionally unused until Stage 1.
+
+The production history view also exposed a template-context collision: the outer history
+loop passed one message into a partial that could still see and rerender the full collection.
+Single-message and HTMX-turn partials are now separate, with isolated include contexts and
+an exact-occurrence regression test.
