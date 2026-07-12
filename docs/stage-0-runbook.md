@@ -146,13 +146,19 @@ DJANGO_SECURE_HSTS_SECONDS=3600
 DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS=false
 ```
 
-The container runs migrations before starting Gunicorn.
+The container runs migrations and `ensure_superuser` before starting Gunicorn.
 
-Create the first production login using the host's one-off shell:
+Create the first production login **without shell access** (e.g. Render free tier)
+by setting these env vars; the startup `ensure_superuser` command creates/updates
+the account on every deploy (idempotent, secrets stay in the host env):
 
-```bash
-python manage.py createsuperuser
+```dotenv
+DJANGO_SUPERUSER_USERNAME=admin
+DJANGO_SUPERUSER_PASSWORD=a-strong-password
+DJANGO_SUPERUSER_EMAIL=admin@example.com
 ```
+
+If the host *does* provide a shell, `python manage.py createsuperuser` also works.
 
 Verify after deployment:
 
