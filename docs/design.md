@@ -90,4 +90,18 @@ The `rag` app holds retrieval, kept separate from the `chat` generation seam. Pi
   reorders, and keeps top-n. Chosen over a dedicated cross-encoder to avoid heavy deps on the
   free tier / Render. Fallback is explicit, not silent: on failure it logs a warning and
   returns retrieval order with `reranked=False` (a `RerankOutcome`) so the caller/UI can flag it.
-- **Pending in Stage 1:** citations, transparency UI.
+- **Answer + citations** (`rag/answer.py`) — `answer(question, rerank_enabled=True)` runs hybrid
+  retrieve → optional rerank → a grounded, numbered prompt → Gemini answer with inline `[n]`
+  citations. Returns a JSON dict (answer, sources, `rerank_status`, metrics:
+  tokens/latency/est. cost/embedding dim) stored on the chat `Message`. `rerank_status` is
+  `applied` / `failed` (non-silent fallback) / `off` (rerank skipped to save quota). Retrieval
+  uses only the latest question (Stage 1 scope).
+- **Transparency UI** — integrated into the chat, not a separate page. A per-message technique
+  selector (`plain` / `embedding`) plus a rerank checkbox route generation in
+  `chat.views.message_create`; assistant messages persist `technique` + `metadata`, and
+  `_message.html` renders a collapsible panel (sources with scores/method, tokens, cost,
+  latency, embedding dim; a warning when reranking failed, a note when it was off). The
+  dedicated per-technique query + 4-way comparison page is Stage 5.
+- **Model config** — the generation model is centralised in `settings.GEMINI_MODEL`
+  (env `GEMINI_MODEL`, default `gemini-2.5-flash-lite` for its more generous free-tier daily
+  quota). Chat, rerank, and answers all read it; embeddings use `gemini-embedding-001`.

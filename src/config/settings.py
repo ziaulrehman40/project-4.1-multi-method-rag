@@ -10,6 +10,11 @@ load_dotenv(BASE_DIR / ".env")
 load_dotenv(BASE_DIR / ".env.local")
 
 SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+
+# Single source of truth for the Gemini generation model (chat, rerank, RAG answers).
+# Override via env; the 2.5-flash-lite free tier has a more generous daily quota than
+# gemini-flash-latest (which resolves to 3.5-flash, ~20 requests/day).
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
 DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() == "true"
 ALLOWED_HOSTS = [
     host.strip()

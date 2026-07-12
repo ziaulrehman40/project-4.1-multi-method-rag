@@ -26,7 +26,7 @@ def test_generate_reply_maps_history_and_calls_flash_once(monkeypatch):
     assert result == "Mapped reply"
     client_factory.assert_called_once_with(api_key="test-key")
     generate_content.assert_called_once_with(
-        model="gemini-flash-latest",
+        model=gemini.MODEL,
         contents=[
             {"role": "user", "parts": [{"text": "Question"}]},
             {"role": "model", "parts": [{"text": "Prior answer"}]},
@@ -35,7 +35,7 @@ def test_generate_reply_maps_history_and_calls_flash_once(monkeypatch):
     )
     log.debug.assert_called_once_with(
         "gemini.call.start model=%s history_messages=%d prompt_chars=%d",
-        "gemini-flash-latest",
+        gemini.MODEL,
         3,
         29,
     )

@@ -6,6 +6,10 @@ from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
+from rag.answer import AnswerError
+from rag.answer import answer as generate_rag_answer
+from rag.embeddings import EmbeddingError
+
 from . import gemini
 from .models import Conversation, Message
 
@@ -81,22 +85,43 @@ def message_create(request, conversation_id):
         len(content),
         request.headers.get("HX-Request") == "true",
     )
+    technique = request.POST.get("technique", "plain")
+    if technique not in ("plain", "embedding"):
+        technique = "plain"
+
     try:
         with transaction.atomic():
             user_message = Message.objects.create(
                 conversation=conversation,
                 role="user",
                 content=content,
+                technique=technique,
             )
-            history = list(conversation.messages.values("role", "content"))
-            reply = gemini.generate_reply(history)
+            metadata = None
+            if technique == "embedding":
+                # Embedding-RAG: retrieve + (optional) rerank + cited generation on the
+                # latest question. Rerank is a checkbox (extra LLM call; can be turned off).
+                rerank_enabled = request.POST.get("rerank") == "on"
+                result = generate_rag_answer(content, rerank_enabled=rerank_enabled)
+                reply = result["answer"]
+                metadata = {
+                    "sources": result["sources"],
+                    "rerank_status": result["rerank_status"],
+                    "metrics": result["metrics"],
+                }
+                history = []
+            else:
+                history = list(conversation.messages.values("role", "content"))
+                reply = gemini.generate_reply(history)
             assistant_message = Message.objects.create(
                 conversation=conversation,
                 role="assistant",
                 content=reply,
+                technique=technique,
+                metadata=metadata,
             )
             conversation.save(update_fields=["updated_at"])
-    except gemini.GeminiError:
+    except (gemini.GeminiError, AnswerError, EmbeddingError):
         logger.warning(
             "message.failed conversation_id=%s user_id=%s reason=gemini_error",
             conversation.id,

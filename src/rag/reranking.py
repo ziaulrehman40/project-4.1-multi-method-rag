@@ -14,13 +14,14 @@ import logging
 import os
 from dataclasses import dataclass
 
+from django.conf import settings
 from google import genai
 from google.genai import types
 
 
 logger = logging.getLogger("rag.rerank")
 
-RERANK_MODEL = "gemini-flash-latest"
+RERANK_MODEL = settings.GEMINI_MODEL  # central, env-overridable
 DEFAULT_TOP_N = 3
 
 

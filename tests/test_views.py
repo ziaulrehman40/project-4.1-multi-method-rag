@@ -165,6 +165,79 @@ def test_llm_failure_does_not_leave_half_saved_turn(client, user, monkeypatch):
     assert Message.objects.count() == 0
 
 
+def test_embedding_technique_uses_rag_and_stores_metadata(client, user, monkeypatch):
+    conversation = Conversation.objects.create(owner=user)
+    fake_result = {
+        "answer": "Report within 72 hours [1].",
+        "sources": [{"n": 1, "source": "gdpr.md", "ordinal": 4, "text": "…", "score": 9.0, "method": "rerank"}],
+        "rerank_status": "applied",
+        "metrics": {"input_tokens": 100, "output_tokens": 20, "total_tokens": 120,
+                    "latency_ms": 12.3, "est_cost_usd": 0.0, "embedding_dim": 3072, "model": "gemini-2.5-flash-lite"},
+    }
+    captured = {}
+
+    def fake_answer(question, rerank_enabled=True):
+        captured["question"] = question
+        captured["rerank_enabled"] = rerank_enabled
+        return fake_result
+
+    monkeypatch.setattr("chat.views.generate_rag_answer", fake_answer)
+
+    response = client.post(
+        reverse("message-create", args=[conversation.id]),
+        {"content": "How fast must a breach be reported?", "technique": "embedding", "rerank": "on"},
+    )
+
+    assert response.status_code == 302
+    assistant = conversation.messages.get(role="assistant")
+    assert assistant.technique == "embedding"
+    assert assistant.content == "Report within 72 hours [1]."
+    assert assistant.metadata["sources"][0]["source"] == "gdpr.md"
+    assert assistant.metadata["rerank_status"] == "applied"
+    # Retrieval uses the latest question only (Stage 1 scope); rerank checkbox honored.
+    assert captured["question"] == "How fast must a breach be reported?"
+    assert captured["rerank_enabled"] is True
+
+
+def test_embedding_without_rerank_checkbox_disables_rerank(client, user, monkeypatch):
+    conversation = Conversation.objects.create(owner=user)
+    captured = {}
+
+    def fake_answer(question, rerank_enabled=True):
+        captured["rerank_enabled"] = rerank_enabled
+        return {"answer": "a", "sources": [], "rerank_status": "off",
+                "metrics": {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2,
+                            "latency_ms": 1.0, "est_cost_usd": 0.0, "embedding_dim": 3072,
+                            "model": "gemini-2.5-flash-lite"}}
+
+    monkeypatch.setattr("chat.views.generate_rag_answer", fake_answer)
+
+    # No "rerank" field in POST => checkbox unchecked => rerank disabled.
+    client.post(
+        reverse("message-create", args=[conversation.id]),
+        {"content": "q", "technique": "embedding"},
+    )
+    assert captured["rerank_enabled"] is False
+
+
+def test_plain_technique_does_not_call_rag(client, user, monkeypatch):
+    conversation = Conversation.objects.create(owner=user)
+    monkeypatch.setattr("chat.gemini.generate_reply", Mock(return_value="Plain reply."))
+
+    def fail(question):
+        raise AssertionError("plain chat must not invoke embedding RAG")
+
+    monkeypatch.setattr("chat.views.generate_rag_answer", fail)
+
+    response = client.post(
+        reverse("message-create", args=[conversation.id]),
+        {"content": "hello", "technique": "plain"},
+    )
+
+    assert response.status_code == 302
+    assert conversation.messages.get(role="assistant").technique == "plain"
+
+
 def test_rename_conversation(client, user):
     conversation = Conversation.objects.create(owner=user)
 

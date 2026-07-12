@@ -2,14 +2,14 @@ import logging
 import os
 import time
 
+from django.conf import settings
 from google import genai
 
 
 logger = logging.getLogger(__name__)
 
-# The plan's gemini-2.5-flash pin now returns 404 for new users. Google's stable
-# alias keeps Stage 0 on the current general-purpose Flash model.
-MODEL = "gemini-flash-latest"
+# Model is configured centrally (settings.GEMINI_MODEL, env-overridable).
+MODEL = settings.GEMINI_MODEL
 
 
 class GeminiError(RuntimeError):

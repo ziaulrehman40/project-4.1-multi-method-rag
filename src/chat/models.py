@@ -30,6 +30,10 @@ class Message(models.Model):
     role = models.CharField(max_length=16, choices=ROLE_CHOICES)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    # Which retrieval technique produced this message ("plain" = no retrieval, Stage 0).
+    technique = models.CharField(max_length=32, default="plain")
+    # Transparency payload for RAG answers: retrieved sources, scores, metrics, reranked flag.
+    metadata = models.JSONField(null=True, blank=True)
 
     class Meta:
         ordering = ["created_at"]

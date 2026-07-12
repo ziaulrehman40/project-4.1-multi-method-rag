@@ -77,3 +77,8 @@ Retrieval is tested with the embedding API mocked, so tests are deterministic an
 | RR-01 | Rerank reorders by score and keeps top-n | Candidates ordered by LLM score; top-n returned | Pass |
 | RR-02 | Rerank fallback is not silent | On failure: retrieval order, reranked=False, warning logged | Pass |
 | RR-03 | Rerank handles empty input | Returns empty, reranked=True | Pass |
+| AN-01 | answer() builds cited result + metrics | Numbered sources, inline citations, token/latency/cost/dim | Pass |
+| AN-02 | answer() propagates reranked=False | Falls back to retrieval score/method | Pass |
+| AN-03 | answer() raises on generation failure | AnswerError raised (view rolls back) | Pass |
+| CH-01 | Embedding technique routes to RAG + stores metadata | Assistant message technique=embedding, metadata persisted, latest question only | Pass |
+| CH-02 | Plain technique does not call RAG | Plain path used; RAG not invoked | Pass |

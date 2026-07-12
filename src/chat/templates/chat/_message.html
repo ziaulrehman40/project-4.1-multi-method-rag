@@ -1,1 +1,32 @@
-<article class="message {{ message.role }}"><small>{{ message.get_role_display }} · {{ message.created_at|date:"P" }}</small>{{ message.content }}</article>
+<article class="message {{ message.role }}">
+  <small>{{ message.get_role_display }}{% if message.technique and message.technique != "plain" %} · {{ message.technique }} RAG{% endif %} · {{ message.created_at|date:"P" }}</small>
+  {{ message.content }}
+  {% if message.metadata %}
+    {% if message.metadata.rerank_status == "failed" %}
+      <p class="warn">⚠ Reranking unavailable — sources shown in retrieval order.</p>
+    {% elif message.metadata.rerank_status == "off" %}
+      <p class="muted">Reranking off — sources in retrieval order.</p>
+    {% endif %}
+    <details class="rag-details">
+      <summary>Retrieval details · {{ message.metadata.sources|length }} sources</summary>
+      {# Numbered to match the inline [1], [2]… citations in the answer above. #}
+      <ol>
+        {% for s in message.metadata.sources %}
+          <li>
+            <strong>{{ s.source }}</strong> #{{ s.ordinal }}
+            <span class="muted">({{ s.method }} {{ s.score|floatformat:3 }})</span><br>
+            <span class="muted">{{ s.text|truncatechars:220 }}</span>
+          </li>
+        {% endfor %}
+      </ol>
+      <p class="muted">
+        tokens {{ message.metadata.metrics.total_tokens }}
+        (in {{ message.metadata.metrics.input_tokens }} / out {{ message.metadata.metrics.output_tokens }})
+        · est. ${{ message.metadata.metrics.est_cost_usd }}
+        · {{ message.metadata.metrics.latency_ms }} ms
+        · embedding dim {{ message.metadata.metrics.embedding_dim }}
+        · {{ message.metadata.metrics.model }}
+      </p>
+    </details>
+  {% endif %}
+</article>
