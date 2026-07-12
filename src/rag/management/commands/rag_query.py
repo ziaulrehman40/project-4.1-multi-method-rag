@@ -25,6 +25,7 @@ class Command(BaseCommand):
             return
         self.stdout.write(f"Query: {question}\n")
         for hit in hits:
+            snippet = hit.text[:400] + ("..." if len(hit.text) > 400 else "")
             self.stdout.write(
-                f"[{hit.distance:.3f}] {hit.source}#{hit.ordinal}: {hit.text[:90]}..."
+                f"\n[distance {hit.distance:.3f}] {hit.source} (chunk #{hit.ordinal})\n{snippet}"
             )

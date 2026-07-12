@@ -62,3 +62,21 @@ Console logs cover request lifecycle/timing, authenticated user IDs, conversatio
 message persistence, Gemini model/call timing, and health checks. Logs use counts and IDs;
 they deliberately exclude message/response content, API keys, credentials, cookies, and tokens.
 `DJANGO_LOG_LEVEL` defaults to `DEBUG` in development and `INFO` in production.
+
+## Stage 1 — Embedding RAG (retrieval)
+
+The `rag` app holds retrieval, kept separate from the `chat` generation seam. Pipeline:
+`sample-docs → chunk → embed (gemini-embedding-001, 3072-dim) → pgvector → cosine top-k`.
+
+- **Chunking** (`rag/chunking.py`) — three strategies behind a `chunk(strategy=...)` dispatcher:
+  `fixed` (size-blind baseline), `recursive` (separator hierarchy + sentence-aware overlap;
+  the default), and `semantic` (sentence-embedding boundary detection). For these markdown
+  docs recursive is the sweet spot; semantic isolates specific facts but embeds every
+  sentence, so it is not used for automatic ingestion (free-tier quota).
+- **Storage** — `DocumentChunk.embedding` is a pgvector `VectorField(3072)`. No ANN index:
+  pgvector indexes cap at 2000 dims and the corpus is tiny, so an exact cosine scan is used.
+- **Ingestion** (`ingest_docs`) — idempotent, guarded by a hash of content + chunking params
+  (so changing strategy/size re-ingests). Runs on container start; no shell needed on Render.
+- **Embedding resilience** (`rag/embeddings.py`) — batches (<=32) and retries with backoff;
+  holds a strong client reference (a temporary `genai.Client` is GC'd mid-request).
+- **Pending in Stage 1:** hybrid search (dense + BM25), reranking, citations, transparency UI.

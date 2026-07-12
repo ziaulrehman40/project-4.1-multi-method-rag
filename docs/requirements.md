@@ -51,3 +51,18 @@ The detailed plan names `gemini-2.5-flash`, but on 2026-07-11 the Gemini API ret
 404 and said that model was unavailable to new users. The README's provider requirement
 is the higher-priority, model-family-level baseline, so the implementation uses Google's
 `gemini-flash-latest` alias. The single-call behavior and provider seam are unchanged.
+
+## Stage 1 — Embedding RAG
+
+### Functional scope (in progress)
+
+- Ingest `sample-docs/`, chunk, embed with `gemini-embedding-001`, store in pgvector.
+- A chunking-strategy comparison: fixed, recursive (default), and semantic. **Done.**
+- Dense retrieval: nearest chunks by cosine distance. **Done.**
+- Hybrid search (dense + sparse/BM25), a reranking step, answers with citations, and the
+  transparency UI (chunks, scores, tokens, cost, latency) wired into chat. **Pending.**
+
+### Quality and operational requirements
+
+- pgvector extension enabled via migration; ingestion idempotent and runs on deploy start.
+- Embedding calls batched and retried; the API is mocked in tests (no external calls).

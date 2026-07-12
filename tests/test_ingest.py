@@ -48,3 +48,20 @@ def test_ingest_is_idempotent_on_unchanged_docs(monkeypatch):
     call_command("ingest_docs")
 
     assert DocumentChunk.objects.count() == first_count
+
+
+def test_changing_strategy_reingests(monkeypatch):
+    calls = {"n": 0}
+
+    def spy(texts):
+        calls["n"] += 1
+        return _fake_embed(texts)
+
+    monkeypatch.setattr("rag.management.commands.ingest_docs.embed_texts", spy)
+
+    call_command("ingest_docs", strategy="recursive")
+    after_first = calls["n"]
+
+    # Same content but a different chunking config -> must re-embed, not skip.
+    call_command("ingest_docs", strategy="fixed")
+    assert calls["n"] > after_first

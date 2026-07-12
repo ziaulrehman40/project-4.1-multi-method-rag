@@ -52,3 +52,21 @@ to be repeated on the deployed host. The live HTTPS smoke test and screenshot al
 the selected host account. Django's production check intentionally retains HSTS subdomain
 and preload advisories: enabling either is unsafe until a real domain and all of its
 subdomains are under this deployment's HTTPS control.
+
+## Stage 1 — Embedding RAG
+
+Retrieval is tested with the embedding API mocked, so tests are deterministic and offline.
+
+| ID | Description | Expected result | Status |
+|---|---|---|---|
+| CK-01 | Fixed chunks bounded by max_chars | Every chunk within the size limit | Pass |
+| CK-02 | Recursive packs a bare heading with its content | No tiny heading-only chunk | Pass |
+| CK-03 | Recursive overlap is sentence-aware | Each later chunk starts at a sentence boundary | Pass |
+| CK-04 | Semantic cuts at a topic shift | Groups split where meaning changes | Pass |
+| CK-05 | Dispatcher routing / bad-strategy errors | Correct strategy chosen; errors raised | Pass |
+| IN-01 | Ingest creates chunks with 3072-dim embeddings | Chunks stored with vectors | Pass |
+| IN-02 | Ingest idempotent on unchanged docs | Second run re-embeds nothing | Pass |
+| IN-03 | Changing strategy re-ingests | Different chunking config forces re-embed | Pass |
+| EM-01 | Large input split into batches (<=32) | Correct batch sizes, order preserved | Pass |
+| EM-02 | Transient embedding error retried / gives up | Retries then succeeds; raises after max | Pass |
+| RT-01 | Retrieval returns nearest chunk first | Ordered by cosine distance; respects k | Pass |
