@@ -1,10 +1,9 @@
 dj-database-url==3.1.2
 Django==6.0.7
-google-genai==2.10.0
+google-genai==2.11.0
 gunicorn==26.0.0
 psycopg[binary]==3.3.4
 pytest==9.1.1
 pytest-django==4.12.0
 python-dotenv==1.2.2
 whitenoise==6.12.0
-

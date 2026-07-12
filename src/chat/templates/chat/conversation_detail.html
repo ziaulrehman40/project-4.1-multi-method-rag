@@ -9,12 +9,12 @@
   </div>
   <section id="messages" class="stack" aria-live="polite">
     {% for message in messages %}{% include "chat/_message.html" with message=message %}{% empty %}<p id="empty-state" class="card muted">Ask a compliance question to begin. Stage 0 uses general Gemini knowledge and does not search the sample documents.</p>{% endfor %}
+    {% if error %}{% include "chat/_error.html" %}{% endif %}
   </section>
   <form method="post" action="{% url 'message-create' conversation.id %}" hx-post="{% url 'message-create' conversation.id %}" hx-target="#messages" hx-swap="beforeend" hx-on::after-request="if(event.detail.successful){this.reset(); document.querySelector('#empty-state')?.remove()}" class="card stack" style="margin-top: 1rem;">
     {% csrf_token %}
     <label for="content"><strong>Your message</strong></label>
-    <textarea id="content" name="content" rows="3" required placeholder="Ask about PCI DSS, GDPR, or SOC 2..."></textarea>
+    <textarea id="content" name="content" rows="3" required placeholder="Ask about PCI DSS, GDPR, or SOC 2...">{{ draft_content|default:"" }}</textarea>
     <div class="row"><button type="submit">Send</button><span class="htmx-indicator muted">Gemini is replying…</span></div>
   </form>
 {% endblock %}
-

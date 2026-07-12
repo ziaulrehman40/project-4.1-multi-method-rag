@@ -23,3 +23,11 @@ were absent from the venv; both were resolved before the green run.
 Repeat the full browser acceptance path on the HTTPS deployment and save its screenshot.
 In Stage 1, introduce retrieval behind the existing seam with its own test-first ingestion
 and observability work rather than expanding the Stage 0 views.
+
+### Readiness audit
+
+A second pass upgraded `google-genai` and HTMX to their latest stable releases, expanded
+authorization and provider-boundary coverage, and made a failed Gemini turn atomic. It also
+added a database-backed health endpoint, strict `DATABASE_URL` startup validation, safer
+container signal handling, and production/container checks. PostgreSQL 16.8 and pgvector
+0.8.0 were verified locally; pgvector remains intentionally unused until Stage 1.

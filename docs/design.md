@@ -46,10 +46,19 @@ Retrieval methods (Stages 1–4) will plug in behind the `chat.gemini` seam and 
 - State-changing endpoints accept POST only and use Django CSRF protection, including HTMX requests.
 - Secrets, database URLs, allowed hosts, and trusted origins are environment configuration.
 - A user message is persisted before Gemini is called. If Gemini fails, no synthetic assistant
-  answer is stored; a later stage can add retry/status modeling if needed.
+  answer or half-complete user turn is stored; the transaction rolls back and the UI preserves
+  the draft for retry.
 
 ## Stage 0 deployment shape
 
 The container installs pinned dependencies, collects static files, applies migrations on
 startup, and serves Django through Gunicorn. TLS and the managed Postgres service sit at the
 hosting platform boundary. WhiteNoise serves versioned static assets inside the container.
+The unauthenticated `/health/` endpoint checks live database connectivity for the host.
+
+## Development observability
+
+Console logs cover request lifecycle/timing, authenticated user IDs, conversation CRUD,
+message persistence, Gemini model/call timing, and health checks. Logs use counts and IDs;
+they deliberately exclude message/response content, API keys, credentials, cookies, and tokens.
+`DJANGO_LOG_LEVEL` defaults to `DEBUG` in development and `INFO` in production.

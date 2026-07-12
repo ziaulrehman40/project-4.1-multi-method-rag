@@ -26,6 +26,7 @@ conversation management.
 - Postgres is used in development, tests, and production.
 - Gemini is mocked in automated tests; tests never make external LLM calls.
 - Gunicorn and WhiteNoise support container deployment over HTTPS at the hosting layer.
+- `/health/` reports live Django-to-Postgres connectivity for deployment monitoring.
 
 ### Explicitly out of scope
 
@@ -41,6 +42,7 @@ as database readiness for Stage 1 and is not referenced by application code.
 - [x] One plain Gemini Flash call per submitted message through one seam.
 - [x] Test-first suite passes against Postgres with a mocked LLM.
 - [x] Container/deployment configuration is present.
+- [x] Container entrypoint, migrations, Gunicorn, and database health pass an image smoke test.
 - [ ] Live HTTPS deployment verified and URL/screenshot saved in `proof/` (requires host account).
 
 ### Plan deviation
