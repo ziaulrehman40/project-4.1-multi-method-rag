@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "django.contrib.postgres",  # full-text search (sparse side of hybrid retrieval)
     "chat",
     "rag",
+    "kg",
 ]
 
 MIDDLEWARE = [

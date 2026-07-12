@@ -105,3 +105,22 @@ The `rag` app holds retrieval, kept separate from the `chat` generation seam. Pi
 - **Model config** — the generation model is centralised in `settings.GEMINI_MODEL`
   (env `GEMINI_MODEL`, default `gemini-2.5-flash-lite` for its more generous free-tier daily
   quota). Chat, rerank, and answers all read it; embeddings use `gemini-embedding-001`.
+
+## Stage 2 — Knowledge-Graph RAG (extraction + graph)
+
+The `kg` app builds a graph of facts instead of matching by vector similarity.
+
+- **Extraction** (`kg/extraction.py`) — `extract_triples(text, source)` prompts Gemini for
+  `(subject, predicate, object, section)` triples as JSON, guarded against hallucination
+  ("only facts stated in the text") and fragmentation ("reuse identical phrasing"). Light
+  canonicalisation (lowercase/whitespace). Per-document by default (few LLM calls) but works
+  per-chunk too. Retries transient 503/429 with backoff.
+- **Graph model** (`kg/models.py`) — `Entity` (unique canonical name = node), `Relationship`
+  (subject/predicate/object edge with `source`+`section` provenance, unique per source),
+  `GraphSource` (content+model hash for idempotent rebuilds). Stored in plain Postgres tables;
+  traversal will use recursive CTEs (no graph extension, portable across PG versions).
+- **Build** (`kg/graph.py` + `build_graph` command) — extract → upsert entities (exact-canonical
+  entity resolution via `get_or_create`) → create edges → prune orphaned entities. Idempotent,
+  hash-guarded like `ingest_docs`.
+- **Pending in Stage 2:** graph retrieval (traversal), answer + node/edge trace, interactive
+  graph visual wired into the chat technique selector.
