@@ -4,28 +4,37 @@ Fill this file in as you go. This is what you submit and what you present from o
 
 ## Candidate
 
-- Name:
-- Date submitted:
+- Name: Zia Ul Rehman
+- Date submitted: (fill at submission)
 
 ## Links
 
-- Live URL:
-- Repository:
-- Project board:
-- Loom walkthrough video:
+- Live URL: https://zia-rag-4-1.onrender.com/
+- Repository: https://github.com/ziaulrehman40/project-4.1-multi-method-rag
+- Project board: (optional)
+- Loom walkthrough video: (add before presenting)
 
 ## Artifacts
 
-- Software Requirements Specification (in docs):
-- System diagram (in docs):
-- Screenshots and other proof (in proof):
+- Software Requirements Specification (in docs): docs/srs.md
+- System diagram (in docs): docs/system-diagram.drawio
+- Screenshots and other proof (in proof): proof/
 
 ## Proof of learning
 
 One line per skill: what you learned and your confidence from one to three. Pull these from LEARNING_LOG.md.
 
-- (add one line per skill covered in this project)
+- RAG architecture (confidence 3): clarified retrieval vs. generation, why the "G" defines RAG, and that answer truthfulness is bounded by retrieval/ingestion quality.
 
 ## Summary
 
-In your own words, a short paragraph on what you built and what you learned. This is what you will walk through on the call.
+(Write at the end.) A short paragraph on what you built and what you learned, to walk through on the call.
+
+## Stage progress
+
+- [x] Stage 0 — App skeleton and chat (deployed, tested)
+- [ ] Stage 1 — Embedding-based RAG
+- [ ] Stage 2 — Knowledge-graph RAG
+- [ ] Stage 3 — Vectorless RAG
+- [ ] Stage 4 — Multimodal RAG
+- [ ] Stage 5 — Query page, comparison, evaluation
