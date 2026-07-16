@@ -130,4 +130,9 @@ The `kg` app builds a graph of facts instead of matching by vector similarity.
   `source`/`section`, Gemini answers citing `[n]`, and the returned `trace` is the exact edges
   used (nodes + predicate + provenance) — graph RAG's auditability edge. `graph_query` command
   exposes it from the CLI. Retries transient 503/429.
-- **Pending in Stage 2:** interactive graph visual wired into the chat technique selector.
+- **Chat integration + visual** — "Knowledge Graph" is a third option in the chat technique
+  selector; `chat.views.message_create` routes it to `kg.answer`, persisting the `trace` in the
+  message `metadata`. `_message.html` renders the trace (edges + provenance) and an **interactive
+  vis-network graph** of the trace subgraph (built in `base.html`, re-rendered after HTMX swaps).
+- **Startup** — `build_graph` runs in the container CMD after `ingest_docs`, idempotent and
+  content-hash guarded (no LLM calls on redeploy with unchanged docs/model).

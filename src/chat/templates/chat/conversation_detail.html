@@ -17,6 +17,7 @@
     <select id="technique" name="technique">
       <option value="plain">Plain chat — general Gemini, no document search</option>
       <option value="embedding">Embedding RAG — searches the sample documents, with citations</option>
+      <option value="graph">Knowledge Graph — traverses an extracted fact graph, with a visual trace</option>
     </select>
     <label class="row"><input type="checkbox" name="rerank" style="width:auto" checked> Rerank results <span class="muted">(embedding RAG only; extra LLM call, uses more quota)</span></label>
     <label for="content"><strong>Your message</strong></label>

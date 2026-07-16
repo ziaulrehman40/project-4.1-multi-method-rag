@@ -199,6 +199,36 @@ def test_embedding_technique_uses_rag_and_stores_metadata(client, user, monkeypa
     assert captured["rerank_enabled"] is True
 
 
+def test_graph_technique_routes_to_kg_and_stores_trace(client, user, monkeypatch):
+    conversation = Conversation.objects.create(owner=user)
+    fake_result = {
+        "answer": "Reported to the authority [1].",
+        "trace": [{"n": 1, "subject": "breach", "predicate": "reported to", "object": "authority",
+                   "source": "gdpr.md", "section": "Breaches"}],
+        "metrics": {"input_tokens": 40, "output_tokens": 8, "total_tokens": 48,
+                    "latency_ms": 20.0, "est_cost_usd": 0.0, "edges_used": 1, "model": "gemini-2.5-flash-lite"},
+    }
+    captured = {}
+
+    def fake_graph_answer(question):
+        captured["question"] = question
+        return fake_result
+
+    monkeypatch.setattr("chat.views.generate_graph_answer", fake_graph_answer)
+
+    response = client.post(
+        reverse("message-create", args=[conversation.id]),
+        {"content": "Who is a breach reported to?", "technique": "graph"},
+    )
+
+    assert response.status_code == 302
+    assistant = conversation.messages.get(role="assistant")
+    assert assistant.technique == "graph"
+    assert assistant.metadata["trace"][0]["subject"] == "breach"
+    assert assistant.metadata["metrics"]["edges_used"] == 1
+    assert captured["question"] == "Who is a breach reported to?"
+
+
 def test_embedding_without_rerank_checkbox_disables_rerank(client, user, monkeypatch):
     conversation = Conversation.objects.create(owner=user)
     captured = {}

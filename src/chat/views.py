@@ -6,6 +6,8 @@ from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
+from kg.answer import GraphAnswerError
+from kg.answer import answer as generate_graph_answer
 from rag.answer import AnswerError
 from rag.answer import answer as generate_rag_answer
 from rag.embeddings import EmbeddingError
@@ -86,7 +88,7 @@ def message_create(request, conversation_id):
         request.headers.get("HX-Request") == "true",
     )
     technique = request.POST.get("technique", "plain")
-    if technique not in ("plain", "embedding"):
+    if technique not in ("plain", "embedding", "graph"):
         technique = "plain"
 
     try:
@@ -110,6 +112,13 @@ def message_create(request, conversation_id):
                     "metrics": result["metrics"],
                 }
                 history = []
+            elif technique == "graph":
+                # Knowledge-graph RAG: seed + traverse the extracted graph, cited answer
+                # with a node/edge trace (rendered as an interactive graph in the UI).
+                result = generate_graph_answer(content)
+                reply = result["answer"]
+                metadata = {"trace": result["trace"], "metrics": result["metrics"]}
+                history = []
             else:
                 history = list(conversation.messages.values("role", "content"))
                 reply = gemini.generate_reply(history)
@@ -121,7 +130,7 @@ def message_create(request, conversation_id):
                 metadata=metadata,
             )
             conversation.save(update_fields=["updated_at"])
-    except (gemini.GeminiError, AnswerError, EmbeddingError):
+    except (gemini.GeminiError, AnswerError, EmbeddingError, GraphAnswerError):
         logger.warning(
             "message.failed conversation_id=%s user_id=%s reason=gemini_error",
             conversation.id,

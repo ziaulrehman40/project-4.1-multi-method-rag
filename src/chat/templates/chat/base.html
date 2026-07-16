@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Compliance Chat{% endblock %}</title>
   <script src="https://unpkg.com/htmx.org@2.0.10"></script>
+  <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
   <script>
     document.addEventListener("htmx:beforeSwap", function (event) {
       if (event.detail.xhr.status === 502) {
@@ -20,6 +21,36 @@
       if (form.hasAttribute("hx-post")) return;  // HTMX handles these
       form.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
     });
+
+    // Render knowledge-graph traces as interactive vis-network graphs. Each ".kg-graph"
+    // holds a JSON <script> (the edge trace); build nodes/edges from it once.
+    function renderGraphTraces(root) {
+      (root || document).querySelectorAll(".kg-graph").forEach(function (el) {
+        if (el.dataset.rendered || typeof vis === "undefined") return;
+        var dataEl = el.querySelector('script[type="application/json"]');
+        if (!dataEl) return;
+        el.dataset.rendered = "1";
+        var trace = JSON.parse(dataEl.textContent);
+        var nodeIds = {}, edges = [];
+        trace.forEach(function (t) {
+          nodeIds[t.subject] = true; nodeIds[t.object] = true;
+          edges.push({ from: t.subject, to: t.object, label: t.predicate, arrows: "to" });
+        });
+        var nodes = Object.keys(nodeIds).map(function (n) { return { id: n, label: n }; });
+        var canvas = document.createElement("div");
+        canvas.style.height = "320px";
+        el.appendChild(canvas);
+        new vis.Network(
+          canvas,
+          { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) },
+          { nodes: { shape: "dot", size: 10, font: { size: 12 } },
+            edges: { font: { size: 10, align: "middle" }, color: "#889" },
+            physics: { stabilization: true } }
+        );
+      });
+    }
+    document.addEventListener("DOMContentLoaded", function () { renderGraphTraces(); });
+    document.addEventListener("htmx:afterSwap", function (e) { renderGraphTraces(e.target); });
   </script>
   <style>
     :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #172033; background: #f4f7fb; }

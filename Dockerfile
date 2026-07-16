@@ -18,4 +18,6 @@ RUN DJANGO_SECRET_KEY=build-only-secret \
     python manage.py collectstatic --noinput
 
 EXPOSE 8000
-CMD ["sh", "-c", "python manage.py migrate && python manage.py ensure_superuser && python manage.py ingest_docs && exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000}"]
+# All startup steps are idempotent and content-hash guarded (ingest_docs, build_graph),
+# so redeploys with unchanged docs make no extra LLM calls.
+CMD ["sh", "-c", "python manage.py migrate && python manage.py ensure_superuser && python manage.py ingest_docs && python manage.py build_graph && exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000}"]
