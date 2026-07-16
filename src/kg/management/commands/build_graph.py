@@ -12,7 +12,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from kg.extraction import MODEL, ExtractionError, extract_triples
-from kg.graph import persist_triples
+from kg.graph import embed_relationships, persist_triples
 from kg.models import Entity, GraphSource, Relationship
 
 
@@ -48,6 +48,7 @@ class Command(BaseCommand):
                 continue
 
             count = persist_triples(triples, source=path.name)
+            embed_relationships(source=path.name)  # embed edges for semantic seed-finding
             GraphSource.objects.update_or_create(
                 source=path.name,
                 defaults={"content_hash": content_hash, "triple_count": count},

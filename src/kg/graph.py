@@ -7,8 +7,15 @@ later enhancement.
 
 from django.db import transaction
 
+from rag.embeddings import embed_texts  # reuse Stage 1 embedding client
+
 from .extraction import extract_triples
 from .models import Entity, Relationship
+
+
+def edge_sentence(relationship):
+    """Render an edge as a natural-language fact for embedding: 'subject predicate object'."""
+    return f"{relationship.subject.name} {relationship.predicate} {relationship.object.name}"
 
 
 def _prune_orphan_entities():
@@ -37,7 +44,22 @@ def persist_triples(triples, source):
     return Relationship.objects.filter(source=source).count()
 
 
+def embed_relationships(source):
+    """Embed every edge of `source` (as a sentence) for semantic seed-finding."""
+    relationships = list(
+        Relationship.objects.filter(source=source).select_related("subject", "object")
+    )
+    if not relationships:
+        return
+    vectors = embed_texts([edge_sentence(r) for r in relationships])
+    for relationship, vector in zip(relationships, vectors):
+        relationship.embedding = vector
+    Relationship.objects.bulk_update(relationships, ["embedding"])
+
+
 def build_from_text(text, source):
-    """Extract triples from `text` and persist them. Returns the relationship count."""
+    """Extract triples from `text`, persist them, and embed the edges. Returns edge count."""
     triples = extract_triples(text, source)
-    return persist_triples(triples, source)
+    count = persist_triples(triples, source)
+    embed_relationships(source)
+    return count

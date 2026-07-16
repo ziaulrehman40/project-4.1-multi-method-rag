@@ -9,3 +9,7 @@ One entry per skill. Use the Learning Sprint wrap up from your teach-me skill: a
 | Jul 12 2026 | Chunking strategies | 3 | 3 main chunking strategies are clear now, semantic chunking though powerful is not cheap, when docs are structured, recursive/headlines aware chunking makes more sense |
 | Jul 12 2026 | Hybrid Search | 3 | Using a mix of vector search and fullt ext kind fo search(BM25), or dense and sparse search is really useful for finding better matches |
 | Jul 12 2026 | Re-ranking | 3 | Asking specialized tools to re-rank a small number of top matching chunks of text is also a smart way of achieving ebtter accuracy at less cost |
+| Jul 13 2026 | Knowledge Graphs | 3 | I didn't know what are knowledge graphs in depth, but now I understand them better, and how they are built actually. |
+| Jul 13 2026 | Triplets extraction, facts extraction | 2.5 | Maybe there are more ways of extracting fats and these kind of plants. But for now, using an LLM seems fine. |
+| Jul 14 2026 | Searching/matching in knowledge graph | 2.5 | Different approaches to matching and finding relevant nodes and facts is a bit tricky, we need to balance this as per the data size, quality and other factors probably |
+| Jul 14 2026 | local vs global search concept | 2.5 | A very useful concept for large doc searches, the concept of communities and summaries to get to sections of relevant text is actual production grade idea |

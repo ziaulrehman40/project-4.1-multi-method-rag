@@ -122,5 +122,12 @@ The `kg` app builds a graph of facts instead of matching by vector similarity.
 - **Build** (`kg/graph.py` + `build_graph` command) — extract → upsert entities (exact-canonical
   entity resolution via `get_or_create`) → create edges → prune orphaned entities. Idempotent,
   hash-guarded like `ingest_docs`.
-- **Pending in Stage 2:** graph retrieval (traversal), answer + node/edge trace, interactive
-  graph visual wired into the chat technique selector.
+- **Retrieval** (`kg/retrieval.py`) — lightweight local search: each edge is embedded as a
+  sentence at build time (`Relationship.embedding`, reusing `rag.embeddings`); `graph_search`
+  finds the top seed edges by cosine similarity to the question, then traverses `hops` steps to
+  gather the connected subgraph (capped at `max_edges`).
+- **Answer + trace** (`kg/answer.py`) — presents the subgraph edges as numbered facts with
+  `source`/`section`, Gemini answers citing `[n]`, and the returned `trace` is the exact edges
+  used (nodes + predicate + provenance) — graph RAG's auditability edge. `graph_query` command
+  exposes it from the CLI. Retries transient 503/429.
+- **Pending in Stage 2:** interactive graph visual wired into the chat technique selector.

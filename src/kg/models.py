@@ -1,4 +1,5 @@
 from django.db import models
+from pgvector.django import VectorField
 
 
 class Entity(models.Model):
@@ -24,6 +25,10 @@ class Relationship(models.Model):
     object = models.ForeignKey(Entity, on_delete=models.CASCADE, related_name="incoming")
     source = models.CharField(max_length=200)
     section = models.CharField(max_length=300, blank=True)
+    # Embedding of the edge as a sentence ("subject predicate object"), for semantic
+    # seed-finding at query time. Populated at build; nullable until then. No ANN index
+    # (small graph -> exact cosine scan; pgvector indexes also cap at 2000 dims < 3072).
+    embedding = VectorField(dimensions=3072, null=True)
 
     class Meta:
         # Same fact from the same document is stored once.
