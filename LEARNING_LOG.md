@@ -17,6 +17,6 @@ One entry per skill. Use the Learning Sprint wrap up from your teach-me skill: a
 | Jul 18 2026 |  | 3 |  |
 | Jul | Vectorless RAG - buildup | 2 | Interesting techniques like maintaining summaries at different node levels with help of LLM etc, but i think this side may have much more than this, sounds too simple and anive for complex tasks |
 | Jul 18 2026 |  | 3 |  |
-| Jul |  | 3 |  |
-| Jul |  | 3 |  |
-| Jul |  | 3 |  |
+| Jul 18 2026 | Multimodal RAG techniques | 2.5 | A bigger universe, got an intro and understanding to kick things off where needed |
+| Jul 18 2026 | PDF chunking | 2 | Much more fun due to page splits, images, multipage tables etc, AI was shying from some items, i had to let it relax as the main asks of the project were being met |
+| Jul 18 2026 |  | 3 |  |

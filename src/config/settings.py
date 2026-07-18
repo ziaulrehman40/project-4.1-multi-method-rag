@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "rag",
     "kg",
     "vectorless",
+    "multimodal",
 ]
 
 MIDDLEWARE = [

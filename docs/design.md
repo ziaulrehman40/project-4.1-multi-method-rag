@@ -159,3 +159,22 @@ no chunking, no vector store.
   sections and an interactive **hierarchical tree** (vis-network) built from the breadcrumbs,
   with the opened leaf sections highlighted — the navigation-path visual.
 - **Startup** — `build_trees` runs in the container CMD (LLM-free, hash-guarded).
+
+## Stage 4 — Multimodal RAG (parse + index)
+
+The `multimodal` app handles what text RAG misses — tables, charts, equations — over a
+table/figure-rich PDF (`sample-docs/compliance-metrics.pdf`).
+
+- **Parsing** (`multimodal/parsing.py`, PyMuPDF) — per page: `find_tables()` → markdown
+  tables (exact structure); **prose** = text blocks that don't overlap a table's bbox (so
+  garbled table cells never leak into the prose); figure images extracted with their section
+  heading + caption captured from block positions (context).
+- **Embeddings** (`multimodal/embeddings.py`) — `gemini-embedding-2` embeds **both text and
+  images** into one 3072-dim space, so a text query can retrieve a chart image (cross-modal).
+  Retries transient errors.
+- **Index** (`multimodal/index.py`) — tables/prose embedded as text (prose chunked with the
+  Stage 1 chunker); each figure stored as **two rows** sharing a `figure_key`: one embedded
+  from the image, one from its caption text (recall boost). Images kept as base64 for UI
+  display. `MultimodalSource` hashes content+model for idempotent rebuilds.
+- **Pending in Stage 4:** cross-modal retrieval, a multimodal (vision) answer that reads the
+  retrieved images, and chat wiring showing the parsed evidence.
