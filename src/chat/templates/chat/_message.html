@@ -23,6 +23,24 @@
           · {{ message.metadata.metrics.model }}
         </p>
       </details>
+    {% elif message.technique == "vectorless" %}
+      <details class="rag-details" open>
+        <summary>Navigation path · {{ message.metadata.trace|length }} sections</summary>
+        {# The sections opened, rendered into a hierarchical tree by base.html. #}
+        <div class="vl-tree">{{ message.metadata.trace|json_script }}</div>
+        <ol>
+          {% for t in message.metadata.trace %}
+            <li>{{ t.path }}</li>
+          {% endfor %}
+        </ol>
+        <p class="muted">
+          sections {{ message.metadata.metrics.sections_opened }}
+          · tokens {{ message.metadata.metrics.total_tokens }}
+          · est. ${{ message.metadata.metrics.est_cost_usd }}
+          · {{ message.metadata.metrics.latency_ms }} ms
+          · {{ message.metadata.metrics.model }}
+        </p>
+      </details>
     {% else %}
       {% if message.metadata.rerank_status == "failed" %}
         <p class="warn">⚠ Reranking unavailable — sources shown in retrieval order.</p>

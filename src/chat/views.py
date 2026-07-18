@@ -11,6 +11,8 @@ from kg.answer import answer as generate_graph_answer
 from rag.answer import AnswerError
 from rag.answer import answer as generate_rag_answer
 from rag.embeddings import EmbeddingError
+from vectorless.answer import VectorlessAnswerError
+from vectorless.answer import answer as generate_vectorless_answer
 
 from . import gemini
 from .models import Conversation, Message
@@ -88,7 +90,7 @@ def message_create(request, conversation_id):
         request.headers.get("HX-Request") == "true",
     )
     technique = request.POST.get("technique", "plain")
-    if technique not in ("plain", "embedding", "graph"):
+    if technique not in ("plain", "embedding", "graph", "vectorless"):
         technique = "plain"
 
     try:
@@ -119,6 +121,13 @@ def message_create(request, conversation_id):
                 reply = result["answer"]
                 metadata = {"trace": result["trace"], "metrics": result["metrics"]}
                 history = []
+            elif technique == "vectorless":
+                # Vectorless RAG: LLM navigates the document tree to pick sections, then
+                # answers from them. Trace = the navigation path (sections opened).
+                result = generate_vectorless_answer(content)
+                reply = result["answer"]
+                metadata = {"trace": result["trace"], "metrics": result["metrics"]}
+                history = []
             else:
                 history = list(conversation.messages.values("role", "content"))
                 reply = gemini.generate_reply(history)
@@ -130,7 +139,13 @@ def message_create(request, conversation_id):
                 metadata=metadata,
             )
             conversation.save(update_fields=["updated_at"])
-    except (gemini.GeminiError, AnswerError, EmbeddingError, GraphAnswerError):
+    except (
+        gemini.GeminiError,
+        AnswerError,
+        EmbeddingError,
+        GraphAnswerError,
+        VectorlessAnswerError,
+    ):
         logger.warning(
             "message.failed conversation_id=%s user_id=%s reason=gemini_error",
             conversation.id,

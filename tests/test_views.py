@@ -229,6 +229,35 @@ def test_graph_technique_routes_to_kg_and_stores_trace(client, user, monkeypatch
     assert captured["question"] == "Who is a breach reported to?"
 
 
+def test_vectorless_technique_routes_and_stores_trace(client, user, monkeypatch):
+    conversation = Conversation.objects.create(owner=user)
+    fake_result = {
+        "answer": "Within 72 hours [1].",
+        "trace": [{"n": 1, "title": "Breaches", "path": "gdpr.md › Breaches", "source": "gdpr.md"}],
+        "metrics": {"input_tokens": 30, "output_tokens": 6, "total_tokens": 36,
+                    "latency_ms": 15.0, "est_cost_usd": 0.0, "sections_opened": 1, "model": "gemini-2.5-flash-lite"},
+    }
+    captured = {}
+
+    def fake_answer(question):
+        captured["question"] = question
+        return fake_result
+
+    monkeypatch.setattr("chat.views.generate_vectorless_answer", fake_answer)
+
+    response = client.post(
+        reverse("message-create", args=[conversation.id]),
+        {"content": "How fast must a breach be reported?", "technique": "vectorless"},
+    )
+
+    assert response.status_code == 302
+    assistant = conversation.messages.get(role="assistant")
+    assert assistant.technique == "vectorless"
+    assert assistant.metadata["trace"][0]["path"] == "gdpr.md › Breaches"
+    assert assistant.metadata["metrics"]["sections_opened"] == 1
+    assert captured["question"] == "How fast must a breach be reported?"
+
+
 def test_embedding_without_rerank_checkbox_disables_rerank(client, user, monkeypatch):
     conversation = Conversation.objects.create(owner=user)
     captured = {}

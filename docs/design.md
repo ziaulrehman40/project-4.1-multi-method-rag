@@ -147,5 +147,15 @@ no chunking, no vector store.
   `#`/`##`/`###` headings nested beneath by level. Each node stores its title, level, content,
   a breadcrumb `path` (the citation, since markdown has no pages), and reading-order `position`.
   `TreeSource` hashes content for idempotent rebuilds; `build_trees` command builds them.
-- **Pending in Stage 3:** LLM navigation over the tree, answer + navigation-path trace, and
-  chat wiring with a visual of the path taken.
+- **Navigation** (`vectorless/navigation.py`) — `navigate` shows the LLM the whole table of
+  contents (titles + breadcrumb paths, no content) and it returns the indices of the sections
+  most likely to answer the question. Single call over the shallow tree (descent would be the
+  scale path). Retries transient errors.
+- **Answer + trace** (`vectorless/answer.py`) — reads only the selected sections' content,
+  generates a cited answer, and returns a `trace` = the navigation path (sections opened, by
+  breadcrumb). `tree_query` command exposes it from the CLI.
+- **Chat integration + visual** — "Vectorless" is a fourth technique option; `message_create`
+  routes it to `vectorless.answer`, persisting the trace. `_message.html` shows the opened
+  sections and an interactive **hierarchical tree** (vis-network) built from the breadcrumbs,
+  with the opened leaf sections highlighted — the navigation-path visual.
+- **Startup** — `build_trees` runs in the container CMD (LLM-free, hash-guarded).

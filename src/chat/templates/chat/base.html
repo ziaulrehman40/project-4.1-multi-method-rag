@@ -49,8 +49,48 @@
         );
       });
     }
-    document.addEventListener("DOMContentLoaded", function () { renderGraphTraces(); });
-    document.addEventListener("htmx:afterSwap", function (e) { renderGraphTraces(e.target); });
+    // Render vectorless navigation paths as a hierarchical tree, built from the section
+    // breadcrumbs in the trace (split on " › "); the opened leaf sections are highlighted.
+    function renderVectorlessTrees(root) {
+      (root || document).querySelectorAll(".vl-tree").forEach(function (el) {
+        if (el.dataset.rendered || typeof vis === "undefined") return;
+        var dataEl = el.querySelector('script[type="application/json"]');
+        if (!dataEl) return;
+        el.dataset.rendered = "1";
+        var trace = JSON.parse(dataEl.textContent);
+        var byId = {}, edges = {}, SEP = " › ";
+        trace.forEach(function (t) {
+          var parts = t.path.split(SEP), cum = "";
+          for (var i = 0; i < parts.length; i++) {
+            var prev = cum;
+            cum = i === 0 ? parts[0] : cum + SEP + parts[i];
+            if (!byId[cum]) byId[cum] = { id: cum, label: parts[i], level: i };
+            if (prev) edges[prev + "|" + cum] = { from: prev, to: cum, arrows: "to" };
+          }
+          byId[cum].selected = true;  // the opened section
+        });
+        var nodes = Object.keys(byId).map(function (k) {
+          var n = byId[k];
+          return { id: n.id, label: n.label, level: n.level,
+                   color: n.selected ? { background: "#174ea6", border: "#12315f" }
+                                      : { background: "#dce3ee", border: "#b8c4d6" },
+                   font: n.selected ? { color: "#fff" } : {} };
+        });
+        var canvas = document.createElement("div");
+        canvas.style.height = "300px";
+        el.appendChild(canvas);
+        new vis.Network(
+          canvas,
+          { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(Object.values(edges)) },
+          { layout: { hierarchical: { direction: "UD", sortMethod: "directed", levelSeparation: 80 } },
+            physics: false, nodes: { shape: "box", font: { size: 12 } }, edges: { color: "#889" } }
+        );
+      });
+    }
+
+    function renderAll(root) { renderGraphTraces(root); renderVectorlessTrees(root); }
+    document.addEventListener("DOMContentLoaded", function () { renderAll(); });
+    document.addEventListener("htmx:afterSwap", function (e) { renderAll(e.target); });
   </script>
   <style>
     :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #172033; background: #f4f7fb; }
