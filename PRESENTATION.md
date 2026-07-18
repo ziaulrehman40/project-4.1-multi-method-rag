@@ -36,5 +36,5 @@ One line per skill: what you learned and your confidence from one to three. Pull
 - [x] Stage 1 — Embedding-based RAG (chunking comparison, hybrid search, reranking, cited answers, transparency)
 - [x] Stage 2 — Knowledge-graph RAG (LLM triple extraction, graph store, seed+traverse retrieval, cited trace, interactive graph visual)
 - [x] Stage 3 — Vectorless RAG (document tree, LLM navigation over the TOC, cited answer, navigation-path tree visual)
-- [ ] Stage 4 — Multimodal RAG
+- [x] Stage 4 — Multimodal RAG (PDF tables/figures, gemini-embedding-2 cross-modal retrieval, vision answer over charts, inline figure evidence)
 - [ ] Stage 5 — Query page, comparison, evaluation
