@@ -176,5 +176,13 @@ table/figure-rich PDF (`sample-docs/compliance-metrics.pdf`).
   Stage 1 chunker); each figure stored as **two rows** sharing a `figure_key`: one embedded
   from the image, one from its caption text (recall boost). Images kept as base64 for UI
   display. `MultimodalSource` hashes content+model for idempotent rebuilds.
-- **Pending in Stage 4:** cross-modal retrieval, a multimodal (vision) answer that reads the
-  retrieved images, and chat wiring showing the parsed evidence.
+- **Retrieval** (`multimodal/retrieval.py`) — embed the question with `gemini-embedding-2`,
+  cosine top-k over all chunks (text/table/image together), de-duplicating figures by
+  `figure_key` (the image + caption rows collapse to one).
+- **Answer** (`multimodal/answer.py`) — build a multimodal prompt: text/tables as text,
+  figures as actual image Parts (capped) that Gemini's vision model reads; cited answer +
+  a `trace` carrying the evidence (including figure images for the UI). Retries transient errors.
+- **Chat + UI** — "Multimodal" is the fifth technique; the transparency panel lists the
+  evidence and renders the retrieved **figure images inline** (base64 data URIs).
+- **Startup + deps** — `build_multimodal` runs in the container CMD (hash-guarded); `pymupdf`
+  is a runtime dependency (startup parses the PDF).

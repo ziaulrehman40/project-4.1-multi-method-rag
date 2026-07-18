@@ -11,6 +11,8 @@ from kg.answer import answer as generate_graph_answer
 from rag.answer import AnswerError
 from rag.answer import answer as generate_rag_answer
 from rag.embeddings import EmbeddingError
+from multimodal.answer import MultimodalAnswerError
+from multimodal.answer import answer as generate_multimodal_answer
 from vectorless.answer import VectorlessAnswerError
 from vectorless.answer import answer as generate_vectorless_answer
 
@@ -90,7 +92,7 @@ def message_create(request, conversation_id):
         request.headers.get("HX-Request") == "true",
     )
     technique = request.POST.get("technique", "plain")
-    if technique not in ("plain", "embedding", "graph", "vectorless"):
+    if technique not in ("plain", "embedding", "graph", "vectorless", "multimodal"):
         technique = "plain"
 
     try:
@@ -128,6 +130,13 @@ def message_create(request, conversation_id):
                 reply = result["answer"]
                 metadata = {"trace": result["trace"], "metrics": result["metrics"]}
                 history = []
+            elif technique == "multimodal":
+                # Multimodal RAG: cross-modal retrieval over the PDF (text/tables/figures);
+                # the vision model reads retrieved figures. Trace carries the evidence used.
+                result = generate_multimodal_answer(content)
+                reply = result["answer"]
+                metadata = {"trace": result["trace"], "metrics": result["metrics"]}
+                history = []
             else:
                 history = list(conversation.messages.values("role", "content"))
                 reply = gemini.generate_reply(history)
@@ -145,6 +154,7 @@ def message_create(request, conversation_id):
         EmbeddingError,
         GraphAnswerError,
         VectorlessAnswerError,
+        MultimodalAnswerError,
     ):
         logger.warning(
             "message.failed conversation_id=%s user_id=%s reason=gemini_error",
