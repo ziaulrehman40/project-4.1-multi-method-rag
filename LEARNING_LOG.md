@@ -13,3 +13,10 @@ One entry per skill. Use the Learning Sprint wrap up from your teach-me skill: a
 | Jul 13 2026 | Triplets extraction, facts extraction | 2.5 | Maybe there are more ways of extracting fats and these kind of plants. But for now, using an LLM seems fine. |
 | Jul 14 2026 | Searching/matching in knowledge graph | 2.5 | Different approaches to matching and finding relevant nodes and facts is a bit tricky, we need to balance this as per the data size, quality and other factors probably |
 | Jul 14 2026 | local vs global search concept | 2.5 | A very useful concept for large doc searches, the concept of communities and summaries to get to sections of relevant text is actual production grade idea |
+| Jul 16 2026 | Vectorless RAG - Concept | 3 | An interesting approach, though very limited useful usecases |
+| Jul 18 2026 |  | 3 |  |
+| Jul | Vectorless RAG - buildup | 2 | Interesting techniques like maintaining summaries at different node levels with help of LLM etc, but i think this side may have much more than this, sounds too simple and anive for complex tasks |
+| Jul 18 2026 |  | 3 |  |
+| Jul |  | 3 |  |
+| Jul |  | 3 |  |
+| Jul |  | 3 |  |

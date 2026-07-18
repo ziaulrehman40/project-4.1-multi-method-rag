@@ -136,3 +136,16 @@ The `kg` app builds a graph of facts instead of matching by vector similarity.
   vis-network graph** of the trace subgraph (built in `base.html`, re-rendered after HTMX swaps).
 - **Startup** — `build_graph` runs in the container CMD after `ingest_docs`, idempotent and
   content-hash guarded (no LLM calls on redeploy with unchanged docs/model).
+
+## Stage 3 — Vectorless RAG (reasoning-based)
+
+The `vectorless` app retrieves by LLM reasoning over document structure — no embeddings,
+no chunking, no vector store.
+
+- **Document tree** (`vectorless/models.py`, `tree.py`) — each doc is parsed (markdown
+  headings, no LLM) into a `DocumentNode` adjacency list: a synthetic root (level 0) with the
+  `#`/`##`/`###` headings nested beneath by level. Each node stores its title, level, content,
+  a breadcrumb `path` (the citation, since markdown has no pages), and reading-order `position`.
+  `TreeSource` hashes content for idempotent rebuilds; `build_trees` command builds them.
+- **Pending in Stage 3:** LLM navigation over the tree, answer + navigation-path trace, and
+  chat wiring with a visual of the path taken.

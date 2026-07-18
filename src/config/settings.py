@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "chat",
     "rag",
     "kg",
+    "vectorless",
 ]
 
 MIDDLEWARE = [
