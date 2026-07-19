@@ -85,17 +85,14 @@ def test_eval_page_renders_latest_run(client, user):
 
 
 def test_judge_parses_scores(monkeypatch):
-    from types import SimpleNamespace
+    from unittest.mock import Mock
 
-    class FakeClient:
-        def __init__(self, **k):
-            self.models = SimpleNamespace(generate_content=self._gen)
+    from llm import Generation
 
-        def _gen(self, model, contents, config):
-            return SimpleNamespace(text='{"faithfulness": 4, "correctness": 5, "reasoning": "good"}')
-
-    monkeypatch.setattr(judge_mod.genai, "Client", FakeClient)
-    monkeypatch.setenv("GEMINI_API_KEY", "k")
+    provider = Mock()
+    provider.generate_json.return_value = (
+        {"faithfulness": 4, "correctness": 5, "reasoning": "good"}, Generation(text=""))
+    monkeypatch.setattr(judge_mod, "get_generation_provider", lambda: provider)
 
     scores = judge_mod.judge("q", "ref", "cand", "evidence")
     assert scores["faithfulness"] == 4.0 and scores["correctness"] == 5.0

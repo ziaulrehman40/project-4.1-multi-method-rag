@@ -1,8 +1,8 @@
 import base64
 
 import pytest
-from google.genai import types
 
+from llm import Image
 from multimodal import answer as answer_mod
 from multimodal.answer import _build_contents, answer
 from multimodal.models import MultimodalChunk
@@ -41,9 +41,9 @@ def test_build_contents_passes_images_as_parts():
         _chunk("text", 1, text="Some prose.", vec=0.1),
         _chunk("image", 2, figure_key="f1", image_b64=png, vec=0.2, context="incident chart"),
     ]
-    parts = _build_contents("Which is highest?", chunks)
-    # There must be an actual image Part in the multimodal prompt.
-    assert any(isinstance(p, types.Part) for p in parts)
+    parts = _build_contents("Which is highest?", chunks, max_images=3)
+    # There must be an actual Image part in the multimodal prompt (provider-agnostic).
+    assert any(isinstance(p, Image) for p in parts)
     assert any(isinstance(p, str) and "Some prose." in p for p in parts)
 
 

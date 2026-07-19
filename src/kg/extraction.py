@@ -10,21 +10,13 @@ entity de-duplication across the corpus happens when the graph is built (Increme
 """
 
 import logging
-import os
-import time
 from dataclasses import dataclass
 
-from django.conf import settings
-from google import genai
-from google.genai import types
+from llm import get_generation_provider
 from llm_json import loads_lenient
 
 
 logger = logging.getLogger("kg.extract")
-
-MODEL = settings.GEMINI_MODEL
-MAX_RETRIES = 4
-BASE_DELAY_SECONDS = 2.0
 
 
 @dataclass
@@ -62,29 +54,11 @@ def _build_prompt(text):
 
 
 def _generate_json(prompt):
-    """Call Gemini for JSON output; retry transient errors (e.g. 503/429) with backoff.
+    """Generate JSON text via the configured provider. Returns raw text (parsed by caller).
 
-    Returns the raw text. Split out so tests can mock it.
+    Name kept so tests can mock it; retry lives in the provider.
     """
-    delay = BASE_DELAY_SECONDS
-    last_error = None
-    for attempt in range(MAX_RETRIES):
-        try:
-            # Strong client reference (a temporary genai.Client is GC'd mid-request).
-            client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-            response = client.models.generate_content(
-                model=MODEL,
-                contents=prompt,
-                config=types.GenerateContentConfig(response_mime_type="application/json"),
-            )
-            return response.text
-        except Exception as error:  # transient: high-demand 503, rate-limit 429, network
-            last_error = error
-            if attempt < MAX_RETRIES - 1:
-                logger.warning("kg.extract.retry attempt=%d error=%s", attempt + 1, error)
-                time.sleep(delay)
-                delay *= 2
-    raise last_error
+    return get_generation_provider().generate([prompt], json_mode=True).text
 
 
 def extract_triples(text, source):

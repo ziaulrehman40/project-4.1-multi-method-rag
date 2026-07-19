@@ -40,26 +40,7 @@ def test_extract_raises_on_unparseable_output(monkeypatch):
         extract_triples("t", source="s.md")
 
 
-def test_generate_json_retries_transient_errors(monkeypatch):
-    from types import SimpleNamespace
-
-    calls = {"n": 0}
-
-    def make_client(api_key):
-        def generate_content(model, contents, config):
-            calls["n"] += 1
-            if calls["n"] == 1:
-                raise RuntimeError("503 UNAVAILABLE: high demand")  # transient
-            return SimpleNamespace(text="[]")
-
-        return SimpleNamespace(models=SimpleNamespace(generate_content=generate_content))
-
-    monkeypatch.setattr(extraction.genai, "Client", make_client)
-    monkeypatch.setattr(extraction.time, "sleep", lambda _s: None)
-    monkeypatch.setenv("GEMINI_API_KEY", "k")
-
-    assert extraction._generate_json("prompt") == "[]"
-    assert calls["n"] == 2  # failed once, retried, succeeded
+# (Retry/backoff now lives in the llm provider and is covered by tests/test_llm.py.)
 
 
 # ------------------------------------------------------------------ persistence (DB)

@@ -15,6 +15,16 @@ SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 # Override via env; the 2.5-flash-lite free tier has a more generous daily quota than
 # gemini-flash-latest (which resolves to 3.5-flash, ~20 requests/day).
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
+
+# LLM provider selection (see the llm/ adapter package). Generation is freely swappable;
+# embeddings stay on Gemini (pgvector columns are dimension-locked at 3072).
+LLM_GENERATION_PROVIDER = os.environ.get("LLM_GENERATION_PROVIDER", "gemini")  # "gemini" | "groq"
+LLM_EMBEDDING_PROVIDER = os.environ.get("LLM_EMBEDDING_PROVIDER", "gemini")
+# One Groq model for text, JSON, and vision, so a provider-wide comparison stays fair.
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "qwen/qwen3.6-27b")
+# Generous output budget: the default model is a reasoning model whose <think> trace can be
+# long — it needs room to reason AND emit the final answer, or output is truncated mid-reason.
+GROQ_MAX_TOKENS = int(os.environ.get("GROQ_MAX_TOKENS", "8000"))
 DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() == "true"
 ALLOWED_HOSTS = [
     host.strip()

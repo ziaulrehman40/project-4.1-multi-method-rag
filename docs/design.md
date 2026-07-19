@@ -199,6 +199,23 @@ The `evaluation` app compares and measures the four techniques.
 - **Query page** (`/rag/query/`) — run one technique and inspect answer + evidence + metrics.
 - **Comparison view** (`/rag/compare/`) — the same question through all four side by side
   (sequential). Reachable from the header nav.
-- **Pending in Stage 5:** the evaluation harness (typed gold set; retrieval metrics hit@k /
-  recall@k / MRR; generation metrics faithfulness + correctness via a rubric LLM-judge;
-  per-category + overall reporting; stored versioned runs).
+- **Evaluation harness** — typed gold set (`gold.py`) → retrieval metrics (hit@k / recall@k /
+  MRR, `metrics.py`) + generation metrics (faithfulness + correctness via a rubric LLM-judge,
+  `judge.py`) → per-technique + per-category reporting (`reporting.py`), stored as versioned
+  `EvalRun`/`EvalResult`. `evaluate` command + results page (`/rag/eval/`). Degrades gracefully
+  on quota; the caveat is shown in the UI and code.
+
+## LLM provider adapter
+
+All LLM SDK usage lives in the **`llm/` package**; the rest of the app depends only on its
+interfaces, so a provider is swapped via settings with no code changes.
+
+- `GenerationProvider` (generate / chat / generate_json) and `EmbeddingProvider`
+  (embed_texts / embed_image); `Image`/`Generation` dataclasses; centralised retry/backoff.
+- Concrete: `GeminiGeneration` + `GeminiEmbedding`; `GroqGeneration` (generation only —
+  one model for text/JSON/vision so provider-wide comparison stays fair; reasoning hidden).
+- Factory reads `settings.LLM_GENERATION_PROVIDER` (default `gemini`, or `groq`) and
+  `LLM_EMBEDDING_PROVIDER`. **Generation is freely swappable; embeddings stay on Gemini**
+  (pgvector columns dimension-locked at 3072). Every technique's answer/rerank/extract/
+  navigate/judge and both embedding modules now route through this adapter (the ~8 duplicated
+  retry loops were removed).

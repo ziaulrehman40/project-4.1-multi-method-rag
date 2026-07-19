@@ -10,18 +10,13 @@ retrieval order with `reranked=False` so callers (and the UI) can flag it.
 """
 
 import logging
-import os
 from dataclasses import dataclass
 
-from django.conf import settings
-from google import genai
-from google.genai import types
-from llm_json import loads_lenient
+from llm import get_generation_provider
 
 
 logger = logging.getLogger("rag.rerank")
 
-RERANK_MODEL = settings.GEMINI_MODEL  # central, env-overridable
 DEFAULT_TOP_N = 3
 
 
@@ -39,9 +34,10 @@ class RerankOutcome:
 
 
 def _score_with_gemini(query, chunks):
-    """Ask Gemini for a 0-10 relevance score per candidate; returns a list aligned to chunks."""
-    # Hold a strong client reference (a temporary genai.Client is GC'd mid-request).
-    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    """Ask the LLM for a 0-10 relevance score per candidate; returns a list aligned to chunks.
+
+    (Name kept for continuity; uses the configured generation provider.)
+    """
     listing = "\n".join(f"[{i}] {chunk.text}" for i, chunk in enumerate(chunks))
     prompt = (
         "Rate how well each candidate passage answers the question, from 0 (irrelevant) "
@@ -50,14 +46,10 @@ def _score_with_gemini(query, chunks):
         'Return ONLY a JSON array with one object per candidate: '
         '[{"index": 0, "score": 7}, ...]'
     )
-    response = client.models.generate_content(
-        model=RERANK_MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(response_mime_type="application/json"),
-    )
+    data, _ = get_generation_provider().generate_json([prompt])
 
     scores = [0.0] * len(chunks)
-    for item in loads_lenient(response.text):
+    for item in data:
         index = item["index"]
         if 0 <= index < len(chunks):  # ignore any out-of-range indices the model invents
             scores[index] = float(item["score"])

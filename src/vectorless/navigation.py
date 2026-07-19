@@ -7,12 +7,8 @@ iterative descent instead.
 """
 
 import logging
-import os
-import time
 
-from django.conf import settings
-from google import genai
-from google.genai import types
+from llm import get_generation_provider
 from llm_json import loads_lenient
 
 from .models import DocumentNode
@@ -20,9 +16,6 @@ from .models import DocumentNode
 
 logger = logging.getLogger("vectorless.nav")
 
-MODEL = settings.GEMINI_MODEL
-MAX_RETRIES = 4
-BASE_DELAY_SECONDS = 2.0
 DEFAULT_MAX_SECTIONS = 5
 
 
@@ -36,25 +29,8 @@ def _toc_nodes():
 
 
 def _generate_json(prompt):
-    """Call Gemini for JSON output; retry transient 503/429 with backoff."""
-    delay = BASE_DELAY_SECONDS
-    last_error = None
-    for attempt in range(MAX_RETRIES):
-        try:
-            client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-            response = client.models.generate_content(
-                model=MODEL,
-                contents=prompt,
-                config=types.GenerateContentConfig(response_mime_type="application/json"),
-            )
-            return response.text
-        except Exception as error:
-            last_error = error
-            if attempt < MAX_RETRIES - 1:
-                logger.warning("vectorless.nav.retry attempt=%d error=%s", attempt + 1, error)
-                time.sleep(delay)
-                delay *= 2
-    raise last_error
+    """Generate JSON text via the configured provider (raw text; parsed by caller)."""
+    return get_generation_provider().generate([prompt], json_mode=True).text
 
 
 def navigate(question, max_sections=DEFAULT_MAX_SECTIONS):

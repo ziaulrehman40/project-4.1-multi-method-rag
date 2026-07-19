@@ -7,23 +7,19 @@ chat Message (JSON) and rendered in the transparency panel.
 Retrieval uses only the current question (not conversation history) — Stage 1 scope.
 """
 
-import os
 import time
 
-from django.conf import settings
-from google import genai
+from llm import active_generation_model, get_generation_provider
 
 from .models import EMBEDDING_DIM
 from .reranking import rerank
 from .retrieval import hybrid_search
 
 
-ANSWER_MODEL = settings.GEMINI_MODEL  # central, env-overridable
 DEFAULT_POOL = 10
 DEFAULT_TOP_N = 3
 
-# Approximate published Gemini Flash rates (USD per 1M tokens). Only used to show an
-# *estimated* cost in the UI; the free tier bills nothing.
+# Approximate Flash rates (USD per 1M tokens). Only used to show an *estimated* cost.
 INPUT_USD_PER_1M = 0.30
 OUTPUT_USD_PER_1M = 2.50
 
@@ -33,15 +29,12 @@ class AnswerError(RuntimeError):
 
 
 def _generate(prompt):
-    """Call Gemini once; return (text, usage-dict). Split out so tests can mock it."""
-    # Strong client reference (a temporary genai.Client is GC'd mid-request).
-    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-    response = client.models.generate_content(model=ANSWER_MODEL, contents=prompt)
-    usage = response.usage_metadata
-    return (response.text or ""), {
-        "input_tokens": getattr(usage, "prompt_token_count", 0) or 0,
-        "output_tokens": getattr(usage, "candidates_token_count", 0) or 0,
-        "total_tokens": getattr(usage, "total_token_count", 0) or 0,
+    """Generate via the configured provider; return (text, usage-dict). Mockable in tests."""
+    result = get_generation_provider().generate([prompt])
+    return result.text, {
+        "input_tokens": result.input_tokens,
+        "output_tokens": result.output_tokens,
+        "total_tokens": result.total_tokens,
     }
 
 
@@ -62,42 +55,32 @@ def answer(question, pool=DEFAULT_POOL, top_n=DEFAULT_TOP_N, rerank_enabled=True
     "applied" (reranked), "failed" (reranker errored → retrieval order; the non-silent
     fallback), or "off" (rerank_enabled=False → one fewer LLM call, saves quota).
     """
-    candidates = hybrid_search(question, k=pool)
-
-    if rerank_enabled:
-        outcome = rerank(question, candidates, top_n=top_n)
-        used = outcome.chunks
-        rerank_status = "applied" if outcome.reranked else "failed"
-    else:
-        used = candidates[:top_n]
-        rerank_status = "off"
-
-    sources = []
-    for n, chunk in enumerate(used, start=1):
-        # Show whichever score the chunk carries (rerank if present, else retrieval score).
-        if hasattr(chunk, "rerank_score"):
-            score, method = chunk.rerank_score, "rerank"
-        elif hasattr(chunk, "rrf_score"):
-            score, method = chunk.rrf_score, "hybrid"
-        else:
-            score, method = getattr(chunk, "distance", None), "dense"
-        sources.append(
-            {
-                "n": n,
-                "source": chunk.source,
-                "ordinal": chunk.ordinal,
-                "text": chunk.text,
-                "score": score,
-                "method": method,
-            }
-        )
-
-    prompt = _build_prompt(question, sources)
     start = time.perf_counter()
     try:
-        text, usage = _generate(prompt)
+        candidates = hybrid_search(question, k=pool)
+        if rerank_enabled:
+            outcome = rerank(question, candidates, top_n=top_n)
+            used = outcome.chunks
+            rerank_status = "applied" if outcome.reranked else "failed"
+        else:
+            used = candidates[:top_n]
+            rerank_status = "off"
+
+        sources = []
+        for n, chunk in enumerate(used, start=1):
+            # Show whichever score the chunk carries (rerank if present, else retrieval score).
+            if hasattr(chunk, "rerank_score"):
+                score, method = chunk.rerank_score, "rerank"
+            elif hasattr(chunk, "rrf_score"):
+                score, method = chunk.rrf_score, "hybrid"
+            else:
+                score, method = getattr(chunk, "distance", None), "dense"
+            sources.append({"n": n, "source": chunk.source, "ordinal": chunk.ordinal,
+                            "text": chunk.text, "score": score, "method": method})
+
+        text, usage = _generate(_build_prompt(question, sources))
     except Exception as error:
-        raise AnswerError(f"answer generation failed: {error}") from error
+        raise AnswerError(f"answer failed: {error}") from error
     latency_ms = round((time.perf_counter() - start) * 1000, 1)
 
     est_cost = (
@@ -114,6 +97,6 @@ def answer(question, pool=DEFAULT_POOL, top_n=DEFAULT_TOP_N, rerank_enabled=True
             "latency_ms": latency_ms,
             "est_cost_usd": round(est_cost, 6),
             "embedding_dim": EMBEDDING_DIM,
-            "model": ANSWER_MODEL,
+            "model": active_generation_model(),
         },
     }

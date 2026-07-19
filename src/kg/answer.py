@@ -7,22 +7,16 @@ win over vector RAG (you see the reasoning path, not just "nearby chunks").
 """
 
 import logging
-import os
 import time
 
-from django.conf import settings
-from google import genai
+from llm import active_generation_model, get_generation_provider
 
 from .retrieval import graph_search
 
 
 logger = logging.getLogger("kg.answer")
 
-MODEL = settings.GEMINI_MODEL
-MAX_RETRIES = 4
-BASE_DELAY_SECONDS = 2.0
-
-# Approximate Gemini Flash rates (USD per 1M tokens); shown as an *estimate* only.
+# Approximate Flash rates (USD per 1M tokens); shown as an *estimate* only.
 INPUT_USD_PER_1M = 0.30
 OUTPUT_USD_PER_1M = 2.50
 
@@ -32,27 +26,13 @@ class GraphAnswerError(RuntimeError):
 
 
 def _generate(prompt):
-    """One Gemini call, retrying transient 503/429 with backoff. Returns (text, usage)."""
-    delay = BASE_DELAY_SECONDS
-    last_error = None
-    for attempt in range(MAX_RETRIES):
-        try:
-            # Strong client reference (a temporary genai.Client is GC'd mid-request).
-            client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-            response = client.models.generate_content(model=MODEL, contents=prompt)
-            usage = response.usage_metadata
-            return (response.text or ""), {
-                "input_tokens": getattr(usage, "prompt_token_count", 0) or 0,
-                "output_tokens": getattr(usage, "candidates_token_count", 0) or 0,
-                "total_tokens": getattr(usage, "total_token_count", 0) or 0,
-            }
-        except Exception as error:
-            last_error = error
-            if attempt < MAX_RETRIES - 1:
-                logger.warning("kg.answer.retry attempt=%d error=%s", attempt + 1, error)
-                time.sleep(delay)
-                delay *= 2
-    raise last_error
+    """Generate via the configured provider; return (text, usage-dict). Mockable in tests."""
+    result = get_generation_provider().generate([prompt])
+    return result.text, {
+        "input_tokens": result.input_tokens,
+        "output_tokens": result.output_tokens,
+        "total_tokens": result.total_tokens,
+    }
 
 
 def _build_prompt(question, trace):
@@ -70,25 +50,27 @@ def _build_prompt(question, trace):
 
 
 def answer(question, seeds=5, hops=1, max_edges=20):
-    """Retrieve a subgraph and generate a cited answer. Returns a JSON-serialisable dict."""
-    edges = graph_search(question, seeds=seeds, hops=hops, max_edges=max_edges)
-    trace = [
-        {
-            "n": n,
-            "subject": edge.subject.name,
-            "predicate": edge.predicate,
-            "object": edge.object.name,
-            "source": edge.source,
-            "section": edge.section,
-        }
-        for n, edge in enumerate(edges, start=1)
-    ]
+    """Retrieve a subgraph and generate a cited answer. Returns a JSON-serialisable dict.
 
+    Any failure (embedding, generation) is wrapped as GraphAnswerError.
+    """
     start = time.perf_counter()
     try:
+        edges = graph_search(question, seeds=seeds, hops=hops, max_edges=max_edges)
+        trace = [
+            {
+                "n": n,
+                "subject": edge.subject.name,
+                "predicate": edge.predicate,
+                "object": edge.object.name,
+                "source": edge.source,
+                "section": edge.section,
+            }
+            for n, edge in enumerate(edges, start=1)
+        ]
         text, usage = _generate(_build_prompt(question, trace))
     except Exception as error:
-        raise GraphAnswerError(f"graph answer generation failed: {error}") from error
+        raise GraphAnswerError(f"graph answer failed: {error}") from error
     latency_ms = round((time.perf_counter() - start) * 1000, 1)
 
     est_cost = (
@@ -103,6 +85,6 @@ def answer(question, seeds=5, hops=1, max_edges=20):
             "latency_ms": latency_ms,
             "est_cost_usd": round(est_cost, 6),
             "edges_used": len(trace),
-            "model": MODEL,
+            "model": active_generation_model(),
         },
     }

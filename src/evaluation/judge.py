@@ -10,20 +10,11 @@ lenient or biased, and a 3-question set isn't statistically robust — treat as 
 """
 
 import logging
-import os
-import time
 
-from django.conf import settings
-from google import genai
-from google.genai import types
-from llm_json import loads_lenient
+from llm import get_generation_provider
 
 
 logger = logging.getLogger("evaluation.judge")
-
-MODEL = settings.GEMINI_MODEL
-MAX_RETRIES = 4
-BASE_DELAY_SECONDS = 2.0
 
 
 class JudgeError(RuntimeError):
@@ -42,27 +33,14 @@ def _prompt(question, reference, candidate, evidence):
 
 
 def judge(question, reference, candidate, evidence):
-    """Return {faithfulness, correctness, reasoning}; retries transient errors."""
+    """Return {faithfulness, correctness, reasoning} via the configured provider."""
     prompt = _prompt(question, reference, candidate, evidence)
-    delay = BASE_DELAY_SECONDS
-    last_error = None
-    for attempt in range(MAX_RETRIES):
-        try:
-            client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-            response = client.models.generate_content(
-                model=MODEL, contents=prompt,
-                config=types.GenerateContentConfig(response_mime_type="application/json"),
-            )
-            data = loads_lenient(response.text)
-            return {
-                "faithfulness": float(data.get("faithfulness", 0)),
-                "correctness": float(data.get("correctness", 0)),
-                "reasoning": str(data.get("reasoning", "")),
-            }
-        except Exception as error:
-            last_error = error
-            if attempt < MAX_RETRIES - 1:
-                logger.warning("evaluation.judge.retry attempt=%d error=%s", attempt + 1, error)
-                time.sleep(delay)
-                delay *= 2
-    raise JudgeError(f"judging failed after {MAX_RETRIES} attempts: {last_error}")
+    try:
+        data, _ = get_generation_provider().generate_json([prompt])
+    except Exception as error:
+        raise JudgeError(f"judging failed: {error}") from error
+    return {
+        "faithfulness": float(data.get("faithfulness", 0)),
+        "correctness": float(data.get("correctness", 0)),
+        "reasoning": str(data.get("reasoning", "")),
+    }

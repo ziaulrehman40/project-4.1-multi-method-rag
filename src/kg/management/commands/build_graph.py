@@ -11,7 +11,9 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from kg.extraction import MODEL, ExtractionError, extract_triples
+from llm import active_generation_model
+
+from kg.extraction import ExtractionError, extract_triples
 from kg.graph import embed_relationships, persist_triples
 from kg.models import Entity, GraphSource, Relationship
 
@@ -34,7 +36,9 @@ class Command(BaseCommand):
 
         for path in paths:
             text = path.read_text(encoding="utf-8")
-            content_hash = hashlib.sha256(f"{text}::{MODEL}".encode("utf-8")).hexdigest()
+            # Include the generation model so a model/provider change re-extracts.
+            fingerprint = f"{text}::{active_generation_model()}"
+            content_hash = hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()
 
             record = GraphSource.objects.filter(source=path.name).first()
             if record and record.content_hash == content_hash and not options["force"]:
