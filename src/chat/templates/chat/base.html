@@ -131,10 +131,15 @@
     <div class="shell">
       <a href="{% url 'conversation-list' %}">Compliance Chat</a>
       {% if request.user.is_authenticated %}
-        <form method="post" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button type="submit">Log out</button>
-        </form>
+        <nav class="row" style="gap:1rem;">
+          <a href="{% url 'conversation-list' %}">Chat</a>
+          <a href="{% url 'rag-query-page' %}">Query</a>
+          <a href="{% url 'rag-compare-page' %}">Compare</a>
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit">Log out</button>
+          </form>
+        </nav>
       {% endif %}
     </div>
   </header>

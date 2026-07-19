@@ -1,0 +1,25 @@
+{% extends "chat/base.html" %}
+{% block title %}RAG Query · Compliance{% endblock %}
+{% block content %}
+  <h1>RAG Query</h1>
+  <p class="muted">Run one technique against a question and inspect it in full.</p>
+
+  {# Plain POST (full-page render); base.html disables the button on submit. #}
+  <form method="post" class="card stack">
+    {% csrf_token %}
+    <label for="technique"><strong>Technique</strong></label>
+    <select id="technique" name="technique">
+      {% for name, label in choices %}
+        <option value="{{ name }}" {% if name == selected %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <label for="question"><strong>Question</strong></label>
+    <textarea id="question" name="question" rows="2" required
+              placeholder="e.g. How fast must a breach be reported?">{{ question }}</textarea>
+    <button type="submit">Run</button>
+  </form>
+
+  {% if result %}
+    <div style="margin-top:1rem;">{% include "evaluation/_result.html" with result=result %}</div>
+  {% endif %}
+{% endblock %}

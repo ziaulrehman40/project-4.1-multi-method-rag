@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "kg",
     "vectorless",
     "multimodal",
+    "evaluation",
 ]
 
 MIDDLEWARE = [

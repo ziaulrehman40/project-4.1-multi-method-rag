@@ -9,7 +9,6 @@ Fallback is never silent: if the rerank call fails, we log a warning and return 
 retrieval order with `reranked=False` so callers (and the UI) can flag it.
 """
 
-import json
 import logging
 import os
 from dataclasses import dataclass
@@ -17,6 +16,7 @@ from dataclasses import dataclass
 from django.conf import settings
 from google import genai
 from google.genai import types
+from llm_json import loads_lenient
 
 
 logger = logging.getLogger("rag.rerank")
@@ -57,7 +57,7 @@ def _score_with_gemini(query, chunks):
     )
 
     scores = [0.0] * len(chunks)
-    for item in json.loads(response.text):
+    for item in loads_lenient(response.text):
         index = item["index"]
         if 0 <= index < len(chunks):  # ignore any out-of-range indices the model invents
             scores[index] = float(item["score"])

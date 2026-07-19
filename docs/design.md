@@ -186,3 +186,19 @@ table/figure-rich PDF (`sample-docs/compliance-metrics.pdf`).
   evidence and renders the retrieved **figure images inline** (base64 data URIs).
 - **Startup + deps** — `build_multimodal` runs in the container CMD (hash-guarded); `pymupdf`
   is a runtime dependency (startup parses the PDF).
+
+## Stage 5 — Query, comparison, evaluation
+
+The `evaluation` app compares and measures the four techniques.
+
+- **Unified registry** (`evaluation/registry.py`) — adapters normalise each technique's
+  `answer()` (different `sources`/`trace` shapes) into one result:
+  `{technique, label, answer, evidence[], sources[], metrics, error}`. `evidence` is for
+  display, `sources` (ordered filenames) feeds the eval metrics, and a per-technique failure
+  is caught into `error` so it never breaks the page or comparison.
+- **Query page** (`/rag/query/`) — run one technique and inspect answer + evidence + metrics.
+- **Comparison view** (`/rag/compare/`) — the same question through all four side by side
+  (sequential). Reachable from the header nav.
+- **Pending in Stage 5:** the evaluation harness (typed gold set; retrieval metrics hit@k /
+  recall@k / MRR; generation metrics faithfulness + correctness via a rubric LLM-judge;
+  per-category + overall reporting; stored versioned runs).

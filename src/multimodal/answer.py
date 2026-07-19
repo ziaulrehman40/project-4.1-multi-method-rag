@@ -89,6 +89,7 @@ def answer(question, k=5):
         {
             "n": n,
             "kind": chunk.kind,
+            "source": chunk.source,
             "page": chunk.page,
             "text": chunk.text,
             "context": chunk.context,

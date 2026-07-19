@@ -1,0 +1,24 @@
+{% extends "chat/base.html" %}
+{% block title %}Compare Techniques · Compliance{% endblock %}
+{% block content %}
+  <h1>Compare Techniques</h1>
+  <p class="muted">Run the same question through all four techniques, side by side.
+    (Runs sequentially, so it takes a few seconds.)</p>
+
+  <form method="post" class="card stack">
+    {% csrf_token %}
+    <label for="question"><strong>Question</strong></label>
+    <textarea id="question" name="question" rows="2" required
+              placeholder="e.g. Which incident category was most common?">{{ question }}</textarea>
+    <button type="submit">Run all four</button>
+  </form>
+
+  {% if results %}
+    {# Responsive grid: one card per technique. #}
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem; margin-top:1rem;">
+      {% for result in results %}
+        {% include "evaluation/_result.html" with result=result %}
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}

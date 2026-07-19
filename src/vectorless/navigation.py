@@ -6,7 +6,6 @@ trees are shallow, so one call over the whole TOC suffices; deep documents would
 iterative descent instead.
 """
 
-import json
 import logging
 import os
 import time
@@ -14,6 +13,7 @@ import time
 from django.conf import settings
 from google import genai
 from google.genai import types
+from llm_json import loads_lenient
 
 from .models import DocumentNode
 
@@ -72,7 +72,7 @@ def navigate(question, max_sections=DEFAULT_MAX_SECTIONS):
         "most likely to contain the answer, most relevant first, e.g. [2, 5]."
     )
     try:
-        indices = json.loads(_generate_json(prompt))
+        indices = loads_lenient(_generate_json(prompt))
     except Exception as error:
         raise NavigationError(f"navigation failed: {error}") from error
 

@@ -1,0 +1,30 @@
+{# Renders one normalised technique result: answer + evidence + metrics. #}
+<div class="card stack">
+  <strong>{{ result.label }}</strong>
+  {% if result.error %}
+    <p class="warn">⚠ {{ result.error }}</p>
+  {% else %}
+    <div>{{ result.answer }}</div>
+    <details class="rag-details">
+      <summary>Evidence · {{ result.evidence|length }}</summary>
+      <ol>
+        {% for e in result.evidence %}
+          <li>
+            <strong>{{ e.label }}</strong>
+            {% if e.image_b64 %}
+              <br><img src="data:image/png;base64,{{ e.image_b64 }}" alt="figure" style="max-width:100%; border:1px solid #dce3ee; border-radius:.4rem; margin-top:.3rem;">
+            {% else %}
+              <br><span class="muted">{{ e.detail|truncatechars:180 }}</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    </details>
+    <p class="muted">
+      {% if result.metrics.total_tokens %}tokens {{ result.metrics.total_tokens }} · {% endif %}
+      {% if result.metrics.latency_ms %}{{ result.metrics.latency_ms }} ms · {% endif %}
+      {% if result.metrics.est_cost_usd %}est. ${{ result.metrics.est_cost_usd }} · {% endif %}
+      {{ result.metrics.model }}
+    </p>
+  {% endif %}
+</div>

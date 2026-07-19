@@ -9,7 +9,6 @@ single chunk. Entity/predicate canonicalisation here is light (lowercase/whitesp
 entity de-duplication across the corpus happens when the graph is built (Increment 2).
 """
 
-import json
 import logging
 import os
 import time
@@ -18,6 +17,7 @@ from dataclasses import dataclass
 from django.conf import settings
 from google import genai
 from google.genai import types
+from llm_json import loads_lenient
 
 
 logger = logging.getLogger("kg.extract")
@@ -90,7 +90,7 @@ def _generate_json(prompt):
 def extract_triples(text, source):
     """Extract provenance-tagged triples from `text`. Raises ExtractionError on failure."""
     try:
-        data = json.loads(_generate_json(_build_prompt(text)))
+        data = loads_lenient(_generate_json(_build_prompt(text)))
     except Exception as error:
         raise ExtractionError(f"extraction failed for {source}: {error}") from error
 
