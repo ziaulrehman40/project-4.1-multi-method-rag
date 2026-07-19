@@ -1,0 +1,74 @@
+{% extends "chat/base.html" %}
+{% block title %}Evaluation · Compliance{% endblock %}
+{% block content %}
+  <h1>Evaluation</h1>
+
+  <div class="card" style="border-left:4px solid #a52626;">
+    <strong>Quota caveat.</strong> A full run makes many LLM calls (gold × 4 techniques ×
+    (answer + judge)). The Gemini free tier allows ~20 requests/day, so a run can hit the
+    daily cap and finish partially — cells that failed show as errors. The gold set is kept
+    to 3 questions for this reason. Results below are from the last run; regenerate with
+    <code>python manage.py evaluate</code>.
+  </div>
+
+  {% if not run %}
+    <p class="muted" style="margin-top:1rem;">No evaluation run yet. Run
+      <code>python manage.py evaluate</code>.</p>
+  {% else %}
+    <p class="muted" style="margin-top:1rem;">
+      Run #{{ run.id }} · {{ run.model }} · {{ run.created_at|date:"Y-m-d H:i" }} ·
+      {% if run.completed %}completed{% else %}<span class="warn">partial (quota / errors)</span>{% endif %}
+    </p>
+
+    <h2>Per technique (averaged over the gold set)</h2>
+    <div style="overflow-x:auto;">
+      <table style="border-collapse:collapse; width:100%; font-size:.92em;">
+        <thead><tr>
+          <th style="text-align:left; padding:.4rem;">Technique</th>
+          <th style="padding:.4rem;">hit@k</th><th style="padding:.4rem;">recall@k</th>
+          <th style="padding:.4rem;">MRR</th><th style="padding:.4rem;">faithfulness</th>
+          <th style="padding:.4rem;">correctness</th><th style="padding:.4rem;">latency</th>
+          <th style="padding:.4rem;">cost</th><th style="padding:.4rem;">errors</th>
+        </tr></thead>
+        <tbody>
+          {% for s in summary %}
+            <tr style="border-top:1px solid #dce3ee;">
+              <td style="padding:.4rem;"><strong>{{ s.technique }}</strong></td>
+              <td style="text-align:center;">{{ s.hit_at_k|floatformat:2 }}</td>
+              <td style="text-align:center;">{{ s.recall_at_k|floatformat:2 }}</td>
+              <td style="text-align:center;">{{ s.mrr|floatformat:2 }}</td>
+              <td style="text-align:center;">{{ s.faithfulness|floatformat:1 }}/5</td>
+              <td style="text-align:center;">{{ s.correctness|floatformat:1 }}/5</td>
+              <td style="text-align:center;">{{ s.latency_ms|floatformat:0 }} ms</td>
+              <td style="text-align:center;">${{ s.est_cost_usd|floatformat:5 }}</td>
+              <td style="text-align:center;">{{ s.errors }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <h2 style="margin-top:1.5rem;">Correctness by question type</h2>
+    <p class="muted">Each technique tends to win in its own lane.</p>
+    <div style="overflow-x:auto;">
+      <table style="border-collapse:collapse; font-size:.92em;">
+        <thead><tr>
+          <th style="text-align:left; padding:.4rem;">Type</th>
+          {% for t in categories.techniques %}<th style="padding:.4rem;">{{ t }}</th>{% endfor %}
+        </tr></thead>
+        <tbody>
+          {% for row in categories.rows %}
+            <tr style="border-top:1px solid #dce3ee;">
+              <td style="padding:.4rem;"><strong>{{ row.type }}</strong></td>
+              {% for c in row.cells %}
+                <td style="text-align:center; padding:.4rem;">
+                  {% if c.correctness is None %}–{% else %}{{ c.correctness|floatformat:1 }}{% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

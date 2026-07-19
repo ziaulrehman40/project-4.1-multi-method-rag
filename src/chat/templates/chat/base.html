@@ -135,6 +135,7 @@
           <a href="{% url 'conversation-list' %}">Chat</a>
           <a href="{% url 'rag-query-page' %}">Query</a>
           <a href="{% url 'rag-compare-page' %}">Compare</a>
+          <a href="{% url 'rag-eval-page' %}">Eval</a>
           <form method="post" action="{% url 'logout' %}">
             {% csrf_token %}
             <button type="submit">Log out</button>
