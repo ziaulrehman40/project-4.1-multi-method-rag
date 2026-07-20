@@ -55,6 +55,43 @@ def test_run_evaluation_scores_and_stores(monkeypatch):
 
 
 @pytest.mark.django_db
+def test_ensure_eval_establishes_once_and_respects_version(monkeypatch):
+    """ensure_eval populates the results page on first deploy, skips on later deploys, and
+    re-runs only when EVAL_VERSION is bumped (the shell-free, run-once deploy hook)."""
+    from django.core.management import call_command
+
+    from evaluation.management.commands import ensure_eval as cmd
+    from kg.models import RebuildMarker
+
+    runs = {"n": 0}
+
+    def fake_run_evaluation(*a, **k):
+        runs["n"] += 1
+        return EvalRun.objects.create(model="fake", completed=True)
+
+    monkeypatch.setattr(cmd, "run_evaluation", fake_run_evaluation)
+
+    # 1) No run yet -> establish one.
+    monkeypatch.delenv("EVAL_VERSION", raising=False)
+    call_command("ensure_eval")
+    assert runs["n"] == 1 and EvalRun.objects.count() == 1
+
+    # 2) A run exists, no version -> skip (don't re-spend on every redeploy).
+    call_command("ensure_eval")
+    assert runs["n"] == 1
+
+    # 3) EVAL_VERSION bumped -> force a fresh run and latch the marker.
+    monkeypatch.setenv("EVAL_VERSION", "v2")
+    call_command("ensure_eval")
+    assert runs["n"] == 2
+    assert RebuildMarker.objects.get(key=cmd.MARKER_KEY).value == "v2"
+
+    # 4) Same version again -> skip.
+    call_command("ensure_eval")
+    assert runs["n"] == 2
+
+
+@pytest.mark.django_db
 def test_run_evaluation_records_technique_error(monkeypatch):
     def failing_run_all(question):
         return [{"technique": "graph", "label": "Knowledge Graph", "answer": "",
