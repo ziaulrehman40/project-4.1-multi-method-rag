@@ -111,6 +111,45 @@ def _images_with_context(page, page_no):
     return items
 
 
+def render_markdown(path):
+    """Render a PDF as markdown (headings + prose + tables) for the TEXT techniques.
+
+    So embedding/graph/vectorless build over the same PDF content the multimodal parser sees —
+    minus the figure PIXELS, which stay exclusive to multimodal (its honest advantage). Blocks
+    are emitted in reading order (top-to-bottom): heading-font text becomes '## ...' so the
+    vectorless tree recovers structure; tables are inserted as markdown; table-overlapping text
+    is skipped (captured as the table). Best-effort structure recovery, sufficient for the
+    small sample corpus."""
+    document = fitz.open(path)
+    parts = []
+    for page_index in range(document.page_count):
+        page = document[page_index]
+        _table_markdowns, table_rects = _tables(page)
+        positioned = [(rect.y0, "table", markdown)
+                      for rect, markdown in zip(table_rects, _table_markdowns)]
+        for block in page.get_text("dict")["blocks"]:
+            if block.get("type") != 0:
+                continue
+            text = _block_text(block)
+            if not text:
+                continue
+            x0, y0, x1, y1 = block["bbox"]
+            centre = fitz.Point((x0 + x1) / 2, (y0 + y1) / 2)
+            if any(rect.contains(centre) for rect in table_rects):
+                continue  # belongs to a table, already emitted as markdown
+            kind = "heading" if _block_font(block) >= HEADING_MIN_FONT else "prose"
+            positioned.append((y0, kind, text))
+        positioned.sort(key=lambda item: item[0])
+        for _y, kind, text in positioned:
+            if kind == "heading":
+                parts.append(f"\n## {text}\n")
+            elif kind == "table":
+                parts.append(f"\n{text}\n")
+            else:
+                parts.append(text)
+    return "\n".join(parts).strip()
+
+
 def parse_pdf(path):
     """Parse a PDF file into a flat list of ParsedItems (tables, prose, images).
 

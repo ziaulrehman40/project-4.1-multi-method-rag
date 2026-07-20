@@ -57,3 +57,51 @@ def build_from_pdf(source, path):
             rows.extend(_rows_for_item(item, source))
         MultimodalChunk.objects.bulk_create(rows)
     return MultimodalChunk.objects.filter(source=source).count()
+
+
+def _markdown_blocks(text):
+    """Split markdown into ('table' | 'text', content) blocks. A block is a run of non-blank
+    lines; it's a table if its lines are pipe-rows, else prose — so markdown tables are indexed
+    as `table` chunks (parity with the PDF parser) and everything else as `text`."""
+    blocks, buffer, is_table = [], [], False
+    for line in text.splitlines():
+        if not line.strip():
+            if buffer:
+                blocks.append(("table" if is_table else "text", "\n".join(buffer)))
+                buffer = []
+            continue
+        line_is_table = line.lstrip().startswith("|")
+        if buffer and line_is_table != is_table:  # prose/table boundary within a run -> flush
+            blocks.append(("table" if is_table else "text", "\n".join(buffer)))
+            buffer = []
+        if not buffer:
+            is_table = line_is_table
+        buffer.append(line)
+    if buffer:
+        blocks.append(("table" if is_table else "text", "\n".join(buffer)))
+    return blocks
+
+
+def build_from_markdown(source, text):
+    """Index a markdown document as multimodal text/table chunks (no figures). Rebuild.
+
+    Lets multimodal cover the SAME corpus as the text techniques — it just has no figure pixels
+    to add for markdown sources."""
+    rows = []
+    for kind, content in _markdown_blocks(text):
+        content = content.strip()
+        if not content:
+            continue
+        if kind == "table":
+            rows.append(MultimodalChunk(source=source, page=1, kind="table",
+                                        text=content, embedding=embed_text(content)))
+        else:
+            rows.extend(
+                MultimodalChunk(source=source, page=1, kind="text", text=chunk,
+                                embedding=embed_text(chunk))
+                for chunk in recursive_chunks(content)
+            )
+    with transaction.atomic():
+        MultimodalChunk.objects.filter(source=source).delete()
+        MultimodalChunk.objects.bulk_create(rows)
+    return MultimodalChunk.objects.filter(source=source).count()

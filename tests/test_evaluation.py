@@ -19,6 +19,16 @@ def test_hit_recall_mrr():
     assert mrr(["x.md"], ["gold.md"]) == 0.0
 
 
+def test_metrics_apply_top_k_cutoff():
+    """A gold source beyond position k must NOT count — the cutoff keeps verbose techniques
+    (long source lists) from being unfairly favoured over ones that return a few chunks."""
+    beyond = ["x.md"] * 5 + ["gold.md"]  # gold source at position 6
+    assert hit_at_k(beyond, ["gold.md"], k=5) == 0.0
+    assert recall_at_k(beyond, ["gold.md"], k=5) == 0.0
+    assert mrr(beyond, ["gold.md"], k=5) == 0.0
+    assert hit_at_k(beyond, ["gold.md"], k=6) == 1.0  # within cutoff -> counts
+
+
 # --------------------------------------------------------------- harness (mocked LLM)
 
 _GOLD = [{"type": "semantic", "question": "q?", "expected_answer": "ref",
@@ -34,7 +44,7 @@ def test_run_evaluation_scores_and_stores(monkeypatch):
 
     monkeypatch.setattr(harness_mod, "run_all", fake_run_all)
     monkeypatch.setattr(harness_mod, "judge",
-                        lambda q, ref, cand, ev: {"faithfulness": 5.0, "correctness": 4.0, "reasoning": "ok"})
+                        lambda q, ref, cand, ev, **kw: {"faithfulness": 5.0, "correctness": 4.0, "reasoning": "ok"})
 
     run = run_evaluation(gold=_GOLD)
 
@@ -63,7 +73,7 @@ def test_summarise_and_by_category(monkeypatch):
         {"technique": "embedding", "label": "E", "answer": "A", "evidence": [{"detail": "e"}],
          "sources": ["gdpr-excerpt.md"], "metrics": {"latency_ms": 10, "est_cost_usd": 0}, "error": None}])
     monkeypatch.setattr(harness_mod, "judge",
-                        lambda *a: {"faithfulness": 5.0, "correctness": 3.0, "reasoning": ""})
+                        lambda *a, **k: {"faithfulness": 5.0, "correctness": 3.0, "reasoning": ""})
     run = run_evaluation(gold=_GOLD)
 
     summary = summarise(run)
@@ -96,3 +106,38 @@ def test_judge_parses_scores(monkeypatch):
 
     scores = judge_mod.judge("q", "ref", "cand", "evidence")
     assert scores["faithfulness"] == 4.0 and scores["correctness"] == 5.0
+
+
+def test_judge_rejects_missing_and_out_of_range_scores(monkeypatch):
+    from unittest.mock import Mock
+
+    from llm import Generation
+
+    provider = Mock()
+    monkeypatch.setattr(judge_mod, "get_generation_provider", lambda: provider)
+
+    # Missing key -> not a silent 0.0.
+    provider.generate_json.return_value = ({"correctness": 4}, Generation(text=""))
+    with pytest.raises(judge_mod.JudgeError):
+        judge_mod.judge("q", "ref", "cand", "ev")
+
+    # Out-of-rubric-range value -> rejected, not stored.
+    provider.generate_json.return_value = (
+        {"faithfulness": 8, "correctness": 4}, Generation(text=""))
+    with pytest.raises(judge_mod.JudgeError):
+        judge_mod.judge("q", "ref", "cand", "ev")
+
+
+@pytest.mark.django_db
+def test_summarise_excludes_error_rows_from_averages():
+    """A failed cell (stored with 0.0 scores) must not drag the technique's average down."""
+    run = EvalRun.objects.create(model="m")
+    EvalResult.objects.create(run=run, technique="embedding", question="q1", qtype="semantic",
+                              hit_at_k=1.0, mrr=1.0, faithfulness=5.0, correctness=5.0)
+    EvalResult.objects.create(run=run, technique="embedding", question="q2", qtype="table",
+                              error="quota")  # scores default to 0.0
+
+    row = next(s for s in summarise(run) if s["technique"] == "embedding")
+    assert row["n"] == 2 and row["errors"] == 1
+    assert row["correctness"] == 5.0 and row["faithfulness"] == 5.0  # error row excluded
+    assert row["hit_at_k"] == 1.0

@@ -4,7 +4,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
-from chat import gemini
+from chat import assistant
 from chat.models import Conversation, Message
 
 
@@ -73,7 +73,7 @@ def test_detail_configures_htmx_to_render_provider_errors(client, user):
 def test_post_message_saves_user_and_assistant(client, user, monkeypatch):
     conversation = Conversation.objects.create(owner=user)
     generate_reply = Mock(return_value="A fixed Gemini reply.")
-    monkeypatch.setattr("chat.gemini.generate_reply", generate_reply)
+    monkeypatch.setattr("chat.assistant.generate_reply", generate_reply)
 
     response = client.post(
         reverse("message-create", args=[conversation.id]),
@@ -101,7 +101,7 @@ def test_post_message_sends_full_history(client, user, monkeypatch):
         content="First answer",
     )
     generate_reply = Mock(return_value="Second answer")
-    monkeypatch.setattr("chat.gemini.generate_reply", generate_reply)
+    monkeypatch.setattr("chat.assistant.generate_reply", generate_reply)
 
     client.post(
         reverse("message-create", args=[conversation.id]),
@@ -119,7 +119,7 @@ def test_post_message_sends_full_history(client, user, monkeypatch):
 
 def test_htmx_post_returns_both_messages(client, user, monkeypatch):
     conversation = Conversation.objects.create(owner=user)
-    monkeypatch.setattr("chat.gemini.generate_reply", Mock(return_value="HTMX answer"))
+    monkeypatch.setattr("chat.assistant.generate_reply", Mock(return_value="HTMX answer"))
 
     response = client.post(
         reverse("message-create", args=[conversation.id]),
@@ -136,7 +136,7 @@ def test_htmx_post_returns_both_messages(client, user, monkeypatch):
 def test_blank_message_is_rejected_without_llm_call(client, user, monkeypatch):
     conversation = Conversation.objects.create(owner=user)
     generate_reply = Mock()
-    monkeypatch.setattr("chat.gemini.generate_reply", generate_reply)
+    monkeypatch.setattr("chat.assistant.generate_reply", generate_reply)
 
     response = client.post(
         reverse("message-create", args=[conversation.id]),
@@ -151,8 +151,8 @@ def test_blank_message_is_rejected_without_llm_call(client, user, monkeypatch):
 def test_llm_failure_does_not_leave_half_saved_turn(client, user, monkeypatch):
     conversation = Conversation.objects.create(owner=user)
     monkeypatch.setattr(
-        "chat.gemini.generate_reply",
-        Mock(side_effect=gemini.GeminiError("provider unavailable")),
+        "chat.assistant.generate_reply",
+        Mock(side_effect=assistant.AssistantError("provider unavailable")),
     )
 
     response = client.post(
@@ -320,7 +320,7 @@ def test_overlong_message_is_rejected(client, user):
 
 def test_plain_technique_does_not_call_rag(client, user, monkeypatch):
     conversation = Conversation.objects.create(owner=user)
-    monkeypatch.setattr("chat.gemini.generate_reply", Mock(return_value="Plain reply."))
+    monkeypatch.setattr("chat.assistant.generate_reply", Mock(return_value="Plain reply."))
 
     def fail(question):
         raise AssertionError("plain chat must not invoke embedding RAG")

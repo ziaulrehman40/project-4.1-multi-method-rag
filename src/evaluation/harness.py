@@ -8,13 +8,24 @@ recorded as an EvalResult with `error` set (scores left at 0) and the run contin
 `EvalRun.completed` reflects whether every cell scored cleanly.
 """
 
-from llm import active_generation_model
+import base64
+
+from llm import Image, active_generation_model, get_generation_provider
 
 from .gold import GOLD
 from .judge import judge
 from .metrics import hit_at_k, mrr, recall_at_k
 from .models import EvalResult, EvalRun
 from .registry import run_all
+
+
+def _evidence_images(evidence):
+    """Figure images from a technique's evidence, capped at the provider's per-call limit, so
+    the judge can grade a chart answer against the actual pixels (mainly multimodal)."""
+    max_images = get_generation_provider().max_images
+    images = [Image(data=base64.b64decode(e["image_b64"]))
+              for e in evidence if e.get("image_b64")]
+    return images[:max_images]
 
 
 def run_evaluation(gold=GOLD):
@@ -37,9 +48,10 @@ def run_evaluation(gold=GOLD):
             retrieved = result["sources"]
             gold_sources = item["expected_sources"]
             evidence_text = "\n".join(e["detail"] for e in result["evidence"])
+            evidence_images = _evidence_images(result["evidence"])
             try:
                 scores = judge(item["question"], item["expected_answer"],
-                               result["answer"], evidence_text)
+                               result["answer"], evidence_text, images=evidence_images)
             except Exception as error:  # judging failed -> record retrieval metrics only
                 EvalResult.objects.create(
                     **base, error=f"judge: {error}"[:300],

@@ -162,8 +162,9 @@ no chunking, no vector store.
 
 ## Stage 4 — Multimodal RAG (parse + index)
 
-The `multimodal` app handles what text RAG misses — tables, charts, equations — over a
-table/figure-rich PDF (`sample-docs/compliance-metrics.pdf`).
+The `multimodal` app handles what text RAG misses — tables, charts, equations. It indexes the
+**shared corpus** (see below): the table/figure-rich PDF (`sample-docs/compliance-metrics.pdf`)
+gets text/table/figure chunks, and the markdown policies get text/table chunks (no figures).
 
 - **Parsing** (`multimodal/parsing.py`, PyMuPDF) — per page: `find_tables()` → markdown
   tables (exact structure); **prose** = text blocks that don't overlap a table's bbox (so
@@ -191,6 +192,11 @@ table/figure-rich PDF (`sample-docs/compliance-metrics.pdf`).
 
 The `evaluation` app compares and measures the four techniques.
 
+- **Shared corpus** (`corpus.py`) — all four techniques build over the SAME documents so the
+  comparison is fair ("the same questions over the same documents"). Markdown files are used
+  as-is; PDFs are rendered to markdown (headings + prose + tables via the multimodal parser) so
+  the text techniques ingest the PDF's text/tables too. Only the figure **pixels** stay
+  exclusive to multimodal — its honest, measurable advantage on the gold set's `figure` question.
 - **Unified registry** (`evaluation/registry.py`) — adapters normalise each technique's
   `answer()` (different `sources`/`trace` shapes) into one result:
   `{technique, label, answer, evidence[], sources[], metrics, error}`. `evidence` is for
@@ -199,11 +205,13 @@ The `evaluation` app compares and measures the four techniques.
 - **Query page** (`/rag/query/`) — run one technique and inspect answer + evidence + metrics.
 - **Comparison view** (`/rag/compare/`) — the same question through all four side by side
   (sequential). Reachable from the header nav.
-- **Evaluation harness** — typed gold set (`gold.py`) → retrieval metrics (hit@k / recall@k /
-  MRR, `metrics.py`) + generation metrics (faithfulness + correctness via a rubric LLM-judge,
-  `judge.py`) → per-technique + per-category reporting (`reporting.py`), stored as versioned
-  `EvalRun`/`EvalResult`. `evaluate` command + results page (`/rag/eval/`). Degrades gracefully
-  on quota; the caveat is shown in the UI and code.
+- **Evaluation harness** — typed gold set (`gold.py`, spanning all four docs) → retrieval
+  metrics (hit@k / recall@k / MRR with a **uniform top-k cutoff** so verbose techniques aren't
+  favoured, `metrics.py`) + generation metrics (faithfulness + correctness via a rubric
+  LLM-judge that is **shown the figure images**, so a chart answer is graded against pixels,
+  `judge.py`) → per-technique + per-category reporting (`reporting.py`, which **excludes errored
+  cells from the averages**), stored as versioned `EvalRun`/`EvalResult`. `evaluate` command +
+  results page (`/rag/eval/`). Degrades gracefully on quota; the caveat is shown in the UI and code.
 
 ## LLM provider adapter
 

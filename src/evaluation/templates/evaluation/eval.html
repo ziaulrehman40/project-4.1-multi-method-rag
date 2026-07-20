@@ -5,9 +5,9 @@
 
   <div class="card" style="border-left:4px solid #a52626;">
     <strong>Quota caveat.</strong> A full run makes many LLM calls (gold × 4 techniques ×
-    (answer + judge)). The Gemini free tier allows ~20 requests/day, so a run can hit the
-    daily cap and finish partially — cells that failed show as errors. The gold set is kept
-    to 3 questions for this reason. Results below are from the last run; regenerate with
+    (answer + judge)). On a rate-limited provider a run can hit a quota and finish partially —
+    cells that failed show as errors (and are excluded from the averages). The gold set is kept
+    small for this reason. Results below are from the last run; regenerate with
     <code>python manage.py evaluate</code>.
   </div>
 

@@ -21,16 +21,20 @@ def summarise(run):
 
     summary = []
     for technique, items in grouped.items():
+        # Average only over cleanly-scored cells — a failed cell (quota/judge error) is stored
+        # with 0.0 scores, so counting it would drag the leaderboard down artificially. Errors
+        # are surfaced separately; cost is summed over ALL cells (the call still cost money).
+        scored = [i for i in items if not i.error]
         summary.append({
             "technique": technique,
             "n": len(items),
             "errors": sum(1 for i in items if i.error),
-            "hit_at_k": _avg(items, "hit_at_k"),
-            "recall_at_k": _avg(items, "recall_at_k"),
-            "mrr": _avg(items, "mrr"),
-            "faithfulness": _avg(items, "faithfulness"),
-            "correctness": _avg(items, "correctness"),
-            "latency_ms": _avg(items, "latency_ms"),
+            "hit_at_k": _avg(scored, "hit_at_k"),
+            "recall_at_k": _avg(scored, "recall_at_k"),
+            "mrr": _avg(scored, "mrr"),
+            "faithfulness": _avg(scored, "faithfulness"),
+            "correctness": _avg(scored, "correctness"),
+            "latency_ms": _avg(scored, "latency_ms"),
             "est_cost_usd": sum(i.est_cost_usd for i in items),
         })
     summary.sort(key=lambda s: TECHNIQUE_ORDER.index(s["technique"])
@@ -51,7 +55,8 @@ def by_category(run):
     for qtype in types:
         cells = []
         for technique in techniques:
-            matches = [r for r in results if r.qtype == qtype and r.technique == technique]
+            matches = [r for r in results
+                       if r.qtype == qtype and r.technique == technique and not r.error]
             cells.append({"technique": technique,
                           "correctness": _avg(matches, "correctness") if matches else None})
         rows.append({"type": qtype, "cells": cells})

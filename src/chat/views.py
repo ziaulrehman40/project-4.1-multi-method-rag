@@ -17,7 +17,7 @@ from multimodal.answer import answer as generate_multimodal_answer
 from vectorless.answer import VectorlessAnswerError
 from vectorless.answer import answer as generate_vectorless_answer
 
-from . import gemini
+from . import assistant
 from .models import Conversation, Message
 
 
@@ -144,7 +144,7 @@ def message_create(request, conversation_id):
                 history = []
             else:
                 history = list(conversation.messages.values("role", "content"))
-                reply = gemini.generate_reply(history)
+                reply = assistant.generate_reply(history)
             assistant_message = Message.objects.create(
                 conversation=conversation,
                 role="assistant",
@@ -154,7 +154,7 @@ def message_create(request, conversation_id):
             )
             conversation.save(update_fields=["updated_at"])
     except (
-        gemini.GeminiError,
+        assistant.AssistantError,
         AnswerError,
         EmbeddingError,
         GraphAnswerError,
@@ -166,7 +166,7 @@ def message_create(request, conversation_id):
             conversation.id,
             request.user.id,
         )
-        error = "We could not get a reply from Gemini. Your message was not saved; please try again."
+        error = "We could not get a reply from the model. Your message was not saved; please try again."
         if request.headers.get("HX-Request") == "true":
             return render(request, "chat/_error.html", {"error": error}, status=502)
         return render(

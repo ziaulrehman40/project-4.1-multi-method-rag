@@ -2,7 +2,7 @@
 {% block title %}Conversations · Compliance Chat{% endblock %}
 {% block content %}
   <div class="row space">
-    <div><h1>Your conversations</h1><p class="muted">Plain Gemini chat. Retrieval arrives in Stage 1.</p></div>
+    <div><h1>Your conversations</h1><p class="muted">Plain chat plus four retrieval techniques over the sample documents.</p></div>
     <form method="post" action="{% url 'conversation-create' %}">
       {% csrf_token %}<button type="submit">New conversation</button>
     </form>

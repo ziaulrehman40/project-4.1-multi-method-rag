@@ -5,16 +5,12 @@ changed. Parsing is cheap and LLM-free, but the guard keeps redeploys from needl
 """
 
 import hashlib
-from pathlib import Path
 
-from django.conf import settings
 from django.core.management.base import BaseCommand
 
+from corpus import document_text, iter_documents
 from vectorless.models import DocumentNode, TreeSource
 from vectorless.tree import build_document_tree
-
-
-SKIP_FILES = {"README.md"}
 
 
 class Command(BaseCommand):
@@ -24,14 +20,13 @@ class Command(BaseCommand):
         parser.add_argument("--force", action="store_true", help="Rebuild even if unchanged.")
 
     def handle(self, *args, **options):
-        docs_dir = Path(settings.BASE_DIR) / "sample-docs"
-        paths = sorted(p for p in docs_dir.glob("*.md") if p.name not in SKIP_FILES)
+        paths = iter_documents()  # shared corpus: markdown + PDF (rendered to text)
         if not paths:
             self.stdout.write("No documents found in sample-docs/; nothing to build.")
             return
 
         for path in paths:
-            text = path.read_text(encoding="utf-8")
+            text = document_text(path)
             content_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
 
             record = TreeSource.objects.filter(source=path.name).first()

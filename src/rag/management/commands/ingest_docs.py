@@ -10,19 +10,15 @@ boundaries, which would quickly exhaust the free-tier embedding quota.
 """
 
 import hashlib
-from pathlib import Path
 
-from django.conf import settings
 from django.contrib.postgres.search import SearchVector
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
+from corpus import document_text, iter_documents
 from rag.chunking import DEFAULT_MAX_CHARS, DEFAULT_OVERLAP, STRATEGIES, chunk
 from rag.embeddings import embed_texts
 from rag.models import DocumentChunk, IngestedDocument
-
-
-SKIP_FILES = {"README.md"}
 
 
 class Command(BaseCommand):
@@ -35,8 +31,7 @@ class Command(BaseCommand):
         parser.add_argument("--overlap", type=int, default=DEFAULT_OVERLAP)
 
     def handle(self, *args, **options):
-        docs_dir = Path(settings.BASE_DIR) / "sample-docs"
-        paths = sorted(p for p in docs_dir.glob("*.md") if p.name not in SKIP_FILES)
+        paths = iter_documents()  # shared corpus: markdown + PDF (rendered to text)
         if not paths:
             self.stdout.write("No documents found in sample-docs/; nothing to ingest.")
             return
@@ -45,7 +40,7 @@ class Command(BaseCommand):
             self._ingest_file(path, options)
 
     def _ingest_file(self, path, options):
-        text = path.read_text(encoding="utf-8")
+        text = document_text(path)
         # Fold the chunking config into the hash so changing strategy/size re-ingests.
         fingerprint = f"{text}::{options['strategy']}:{options['max_chars']}:{options['overlap']}"
         content_hash = hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()
