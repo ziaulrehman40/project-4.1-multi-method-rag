@@ -1,8 +1,8 @@
 """Run the evaluation harness over the gold set and print a per-technique summary.
 
-WARNING: this makes many LLM calls (gold x 4 techniques x (answer + judge)). On the Gemini
-free tier (~20 requests/day) a full run can hit the daily quota and stop partway — that's
-expected; partial results are still stored and shown on the results page (/rag/eval/).
+WARNING: this makes many LLM calls (gold x 4 techniques x (answer + judge)). On a rate-limited
+provider a full run can hit a quota and stop partway — that's expected; partial results are
+still stored and shown on the results page (/rag/eval/).
 """
 
 from django.core.management.base import BaseCommand
@@ -16,7 +16,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.WARNING(
-            "Evaluation makes many LLM calls; the free tier (~20/day) may cap a full run."
+            "Evaluation makes many LLM calls; a rate-limited provider may cap a full run."
         ))
         run = run_evaluation()
         self.stdout.write(f"\nEvalRun #{run.id} ({run.model}) — completed={run.completed}\n")

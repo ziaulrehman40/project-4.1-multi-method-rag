@@ -53,3 +53,17 @@ class GraphSource(models.Model):
 
     def __str__(self):
         return f"{self.source} ({self.triple_count} triples)"
+
+
+class RebuildMarker(models.Model):
+    """Durable, shell-free "one-time op" latch. Prod has no shell, so a forced rebuild is
+    triggered by bumping the REBUILD_VERSION env var: `apply_rebuild` compares it to the
+    stored value here and, on a mismatch, force-rebuilds the generation-derived artifact
+    (the knowledge graph) exactly once — surviving restarts and replicas."""
+
+    key = models.CharField(max_length=100, unique=True)
+    value = models.CharField(max_length=200)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.key}={self.value}"

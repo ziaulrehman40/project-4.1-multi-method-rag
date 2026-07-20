@@ -82,3 +82,34 @@ def test_rebuild_prunes_orphaned_entities():
 
     names = set(Entity.objects.values_list("name", flat=True))
     assert names == {"new", "fresh"}
+
+
+# ----------------------------------------------------- apply_rebuild (one-time reset latch)
+
+@pytest.mark.django_db
+def test_apply_rebuild_is_a_one_shot_latch(monkeypatch):
+    """REBUILD_VERSION gates a single forced graph rebuild: unset = no-op, a new value forces
+    once and records itself, and re-running the same value skips (the prod one-time reset)."""
+    from django.core.management import call_command
+
+    from kg.management.commands import apply_rebuild as cmd
+    from kg.models import RebuildMarker
+
+    forced = {"n": 0}
+    monkeypatch.setattr(cmd, "call_command",
+                        lambda name, **opts: forced.__setitem__("n", forced["n"] + 1))
+
+    # 1) Unset: nothing forced, no marker written.
+    monkeypatch.delenv("REBUILD_VERSION", raising=False)
+    call_command("apply_rebuild")
+    assert forced["n"] == 0 and not RebuildMarker.objects.exists()
+
+    # 2) New value: forces exactly once and records the marker.
+    monkeypatch.setenv("REBUILD_VERSION", "openai-1")
+    call_command("apply_rebuild")
+    assert forced["n"] == 1
+    assert RebuildMarker.objects.get(key=cmd.MARKER_KEY).value == "openai-1"
+
+    # 3) Same value again: already applied, so it skips (no second force).
+    call_command("apply_rebuild")
+    assert forced["n"] == 1

@@ -308,6 +308,16 @@ def test_embedding_without_rerank_checkbox_disables_rerank(client, user, monkeyp
     assert captured["rerank_enabled"] is False
 
 
+def test_overlong_message_is_rejected(client, user):
+    conversation = Conversation.objects.create(owner=user)
+    response = client.post(
+        reverse("message-create", args=[conversation.id]),
+        {"content": "x" * 5000, "technique": "plain"},  # exceeds MAX_QUESTION_CHARS
+    )
+    assert response.status_code == 400
+    assert conversation.messages.count() == 0
+
+
 def test_plain_technique_does_not_call_rag(client, user, monkeypatch):
     conversation = Conversation.objects.create(owner=user)
     monkeypatch.setattr("chat.gemini.generate_reply", Mock(return_value="Plain reply."))

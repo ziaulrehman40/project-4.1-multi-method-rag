@@ -20,6 +20,9 @@ def get_generation_provider(name=None):
     if name == "groq":
         from .groq import GroqGeneration
         return GroqGeneration()
+    if name == "openai":
+        from .openai import OpenAIGeneration
+        return OpenAIGeneration()
     raise ValueError(f"unknown generation provider: {name!r}")
 
 

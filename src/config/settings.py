@@ -18,13 +18,23 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
 
 # LLM provider selection (see the llm/ adapter package). Generation is freely swappable;
 # embeddings stay on Gemini (pgvector columns are dimension-locked at 3072).
-LLM_GENERATION_PROVIDER = os.environ.get("LLM_GENERATION_PROVIDER", "gemini")  # "gemini" | "groq"
+LLM_GENERATION_PROVIDER = os.environ.get("LLM_GENERATION_PROVIDER", "gemini")  # gemini | groq | openai
 LLM_EMBEDDING_PROVIDER = os.environ.get("LLM_EMBEDDING_PROVIDER", "gemini")
 # One Groq model for text, JSON, and vision, so a provider-wide comparison stays fair.
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "qwen/qwen3.6-27b")
 # Generous output budget: the default model is a reasoning model whose <think> trace can be
 # long — it needs room to reason AND emit the final answer, or output is truncated mid-reason.
 GROQ_MAX_TOKENS = int(os.environ.get("GROQ_MAX_TOKENS", "8000"))
+# OpenAI (paid): generous limits, reliable JSON + vision. Small/cheap model by default.
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+
+# Guardrail: cap user question length (bounds prompt size / token cost against abuse).
+MAX_QUESTION_CHARS = int(os.environ.get("MAX_QUESTION_CHARS", "2000"))
+# Guardrail: default cap on generated OUTPUT tokens when a caller doesn't set its own. Bounds
+# worst-case cost on the paid provider (a crafted prompt can't elicit a 16k-token essay).
+# Ample for cited answers and our per-doc triple extraction; callers that need more (vision)
+# pass an explicit higher max_tokens. Groq keeps its own GROQ_MAX_TOKENS (reasoning headroom).
+GENERATION_MAX_TOKENS = int(os.environ.get("GENERATION_MAX_TOKENS", "2048"))
 DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() == "true"
 ALLOWED_HOSTS = [
     host.strip()

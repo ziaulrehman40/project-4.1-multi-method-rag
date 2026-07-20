@@ -2,13 +2,13 @@
 
 QUOTA CAVEAT: a full run makes many LLM calls — roughly
     len(gold) x 4 techniques x (answer pipeline calls + 1 judge call).
-On the Gemini free tier (~20 generate requests/day) even the 3-question gold set can hit the
-daily cap, so a run may stop partway. The harness degrades gracefully: any technique/judge
-failure is recorded as an EvalResult with `error` set (scores left at 0) and the run continues;
+On a rate-limited provider (e.g. a free tier) even the small gold set can hit a daily/minute
+cap, so a run may stop partway. The harness degrades gracefully: any technique/judge failure is
+recorded as an EvalResult with `error` set (scores left at 0) and the run continues;
 `EvalRun.completed` reflects whether every cell scored cleanly.
 """
 
-from django.conf import settings
+from llm import active_generation_model
 
 from .gold import GOLD
 from .judge import judge
@@ -19,7 +19,8 @@ from .registry import run_all
 
 def run_evaluation(gold=GOLD):
     """Execute one evaluation run and return the EvalRun (with results attached)."""
-    run = EvalRun.objects.create(model=settings.GEMINI_MODEL)
+    # Label the run with the ACTIVE generation model so runs are comparable across providers.
+    run = EvalRun.objects.create(model=active_generation_model())
     all_clean = True
 
     for item in gold:

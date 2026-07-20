@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpResponseBadRequest
@@ -83,6 +84,10 @@ def message_create(request, conversation_id):
             request.user.id,
         )
         return HttpResponseBadRequest("Message content is required.")
+    if len(content) > settings.MAX_QUESTION_CHARS:  # guardrail: bound prompt size
+        return HttpResponseBadRequest(
+            f"Message too long (max {settings.MAX_QUESTION_CHARS} characters)."
+        )
 
     logger.info(
         "message.received conversation_id=%s user_id=%s content_chars=%d htmx=%s",

@@ -40,9 +40,9 @@ class GeminiGeneration(GenerationProvider):
         config_kwargs = {}
         if json_mode:
             config_kwargs["response_mime_type"] = "application/json"
-        if max_tokens:
-            config_kwargs["max_output_tokens"] = max_tokens
-        config = types.GenerateContentConfig(**config_kwargs) if config_kwargs else None
+        # Guardrail: always bound output (callers may raise it); keeps cost/latency in check.
+        config_kwargs["max_output_tokens"] = max_tokens or settings.GENERATION_MAX_TOKENS
+        config = types.GenerateContentConfig(**config_kwargs)
 
         def call():
             client = _client()
