@@ -30,6 +30,9 @@ def _strip_reasoning(text):
 
 class GroqGeneration(GenerationProvider):
     max_images = 1  # free-tier 8000 TPM: two readable charts already exceed it
+    # Approximate qwen (Groq) rates (USD per 1M tokens); indicative only.
+    input_usd_per_1m = 0.29
+    output_usd_per_1m = 0.59
 
     def __init__(self):
         self.model = settings.GROQ_MODEL

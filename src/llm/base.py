@@ -81,6 +81,12 @@ class GenerationProvider(ABC):
     # tight free-tier caps (e.g. Groq's 8000 TPM) override this lower.
     max_images = 6
 
+    # Approximate published rates for the default model (USD per 1M tokens), used only to show
+    # an ESTIMATED cost. Each provider overrides with its own model's rates so the Stage-5 cost
+    # comparison tracks the active provider instead of assuming one hardcoded rate.
+    input_usd_per_1m = 0.0
+    output_usd_per_1m = 0.0
+
     @abstractmethod
     def generate(self, parts, *, json_mode=False, max_tokens=None) -> Generation: ...
 

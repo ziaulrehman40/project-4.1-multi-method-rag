@@ -2,13 +2,20 @@ from types import SimpleNamespace
 
 import pytest
 
+from llm import Generation
 from rag import answer as answer_mod
-from rag.answer import AnswerError, answer
+from rag.answer import answer
 from rag.reranking import RerankOutcome
+from techniques import TechniqueError
 
 
 def _chunk(source, ordinal, text, **scores):
     return SimpleNamespace(source=source, ordinal=ordinal, text=text, **scores)
+
+
+def _gen(text, input_tokens=1, output_tokens=1, total_tokens=2):
+    return Generation(text=text, input_tokens=input_tokens,
+                      output_tokens=output_tokens, total_tokens=total_tokens)
 
 
 def _wire(monkeypatch, chunks, reranked=True):
@@ -22,11 +29,8 @@ def test_answer_builds_cited_result_with_metrics(monkeypatch):
     chunks = [_chunk("gdpr.md", 4, "Report a breach within 72 hours.", rerank_score=9.0)]
     _wire(monkeypatch, chunks)
     monkeypatch.setattr(
-        answer_mod,
-        "_generate",
-        lambda prompt: ("Report within 72 hours [1].", {
-            "input_tokens": 100, "output_tokens": 20, "total_tokens": 120
-        }),
+        answer_mod, "run_generation",
+        lambda parts, **kw: _gen("Report within 72 hours [1].", 100, 20, 120),
     )
 
     result = answer("How fast must a breach be reported?")
@@ -44,9 +48,7 @@ def test_answer_builds_cited_result_with_metrics(monkeypatch):
 def test_answer_marks_status_failed_when_rerank_fails(monkeypatch):
     chunks = [_chunk("gdpr.md", 0, "text", rrf_score=0.03)]
     _wire(monkeypatch, chunks, reranked=False)
-    monkeypatch.setattr(answer_mod, "_generate", lambda p: ("answer", {
-        "input_tokens": 1, "output_tokens": 1, "total_tokens": 2
-    }))
+    monkeypatch.setattr(answer_mod, "run_generation", lambda parts, **kw: _gen("answer"))
 
     result = answer("q")
     assert result["rerank_status"] == "failed"
@@ -61,9 +63,7 @@ def test_answer_can_skip_rerank(monkeypatch):
         raise AssertionError("rerank must not run when disabled")
 
     monkeypatch.setattr(answer_mod, "rerank", rerank_must_not_run)
-    monkeypatch.setattr(answer_mod, "_generate", lambda p: ("a", {
-        "input_tokens": 1, "output_tokens": 1, "total_tokens": 2
-    }))
+    monkeypatch.setattr(answer_mod, "run_generation", lambda parts, **kw: _gen("a"))
 
     result = answer("q", top_n=1, rerank_enabled=False)
     assert result["rerank_status"] == "off"
@@ -73,9 +73,9 @@ def test_answer_can_skip_rerank(monkeypatch):
 def test_answer_raises_on_generation_failure(monkeypatch):
     _wire(monkeypatch, [_chunk("a.md", 0, "t", rerank_score=1.0)])
 
-    def boom(prompt):
+    def boom(parts, **kw):
         raise RuntimeError("provider down")
 
-    monkeypatch.setattr(answer_mod, "_generate", boom)
-    with pytest.raises(AnswerError):
+    monkeypatch.setattr(answer_mod, "run_generation", boom)
+    with pytest.raises(TechniqueError):
         answer("q")

@@ -7,14 +7,11 @@ from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
-from kg.answer import GraphAnswerError
+from techniques import TechniqueError
+
 from kg.answer import answer as generate_graph_answer
-from rag.answer import AnswerError
 from rag.answer import answer as generate_rag_answer
-from rag.embeddings import EmbeddingError
-from multimodal.answer import MultimodalAnswerError
 from multimodal.answer import answer as generate_multimodal_answer
-from vectorless.answer import VectorlessAnswerError
 from vectorless.answer import answer as generate_vectorless_answer
 
 from . import assistant
@@ -153,14 +150,7 @@ def message_create(request, conversation_id):
                 metadata=metadata,
             )
             conversation.save(update_fields=["updated_at"])
-    except (
-        assistant.AssistantError,
-        AnswerError,
-        EmbeddingError,
-        GraphAnswerError,
-        VectorlessAnswerError,
-        MultimodalAnswerError,
-    ):
+    except (assistant.AssistantError, TechniqueError):
         logger.warning(
             "message.failed conversation_id=%s user_id=%s reason=gemini_error",
             conversation.id,

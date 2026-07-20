@@ -20,6 +20,9 @@ def _client():
 
 class OpenAIGeneration(GenerationProvider):
     max_images = 6  # paid tier has generous token limits
+    # Approximate gpt-4o-mini rates (USD per 1M tokens); indicative only.
+    input_usd_per_1m = 0.15
+    output_usd_per_1m = 0.60
 
     def __init__(self):
         self.model = settings.OPENAI_MODEL

@@ -1,5 +1,6 @@
 import pytest
 
+from llm import Generation
 from kg import answer as answer_mod
 from kg.answer import answer
 from kg.graph import edge_sentence
@@ -61,10 +62,9 @@ def test_answer_builds_cited_trace(monkeypatch):
     _edge("breach", "reported within", "72 hours", 0)
     monkeypatch.setattr("kg.retrieval.embed_query", lambda _q: _unit(0))
     monkeypatch.setattr(
-        answer_mod, "_generate",
-        lambda prompt: ("Report within 72 hours [1].", {
-            "input_tokens": 50, "output_tokens": 10, "total_tokens": 60
-        }),
+        answer_mod, "run_generation",
+        lambda parts, **kw: Generation(text="Report within 72 hours [1].",
+                                       input_tokens=50, output_tokens=10, total_tokens=60),
     )
 
     result = answer("how fast?", seeds=1, hops=0)

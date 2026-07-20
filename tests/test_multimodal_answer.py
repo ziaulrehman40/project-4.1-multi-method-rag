@@ -2,7 +2,7 @@ import base64
 
 import pytest
 
-from llm import Image
+from llm import Generation, Image
 from multimodal import answer as answer_mod
 from multimodal.answer import _build_contents, answer
 from multimodal.models import MultimodalChunk
@@ -51,10 +51,9 @@ def test_answer_builds_trace_and_metrics(monkeypatch):
     _chunk("image", 2, figure_key="f1", image_b64=base64.b64encode(b"x").decode(),
            vec=1.0, context="chart")
     monkeypatch.setattr("multimodal.retrieval.embed_text", lambda q: _vec(1.0))
-    monkeypatch.setattr(answer_mod, "_generate",
-                        lambda contents: ("Phishing [1].", {
-                            "input_tokens": 200, "output_tokens": 5, "total_tokens": 205
-                        }))
+    monkeypatch.setattr(answer_mod, "run_generation",
+                        lambda parts, **kw: Generation(text="Phishing [1].", input_tokens=200,
+                                                       output_tokens=5, total_tokens=205))
 
     result = answer("Which category was most common?")
     assert result["answer"] == "Phishing [1]."

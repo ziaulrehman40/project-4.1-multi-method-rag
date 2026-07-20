@@ -10,19 +10,14 @@ import base64
 import logging
 import time
 
-from llm import Image, active_generation_model, get_generation_provider
+from llm import Image
+
+from techniques import TechniqueError, finalize_metrics, run_generation
 
 from .retrieval import retrieve
 
 
 logger = logging.getLogger("multimodal.answer")
-
-INPUT_USD_PER_1M = 0.30
-OUTPUT_USD_PER_1M = 2.50
-
-
-class MultimodalAnswerError(RuntimeError):
-    """Multimodal answer generation failed at the provider boundary."""
 
 
 def _build_contents(question, chunks, max_images):
@@ -55,29 +50,21 @@ def _build_contents(question, chunks, max_images):
 VISION_MAX_TOKENS = 5000
 
 
-def _generate(contents):
-    """Generate (vision) via the configured provider. Returns (text, usage-dict)."""
-    result = get_generation_provider().generate(contents, max_tokens=VISION_MAX_TOKENS)
-    return result.text, {
-        "input_tokens": result.input_tokens,
-        "output_tokens": result.output_tokens,
-        "total_tokens": result.total_tokens,
-    }
-
-
 def answer(question, k=5):
     """Retrieve cross-modally and generate a cited answer that can read figures.
 
-    Any failure (embedding, generation) is wrapped as MultimodalAnswerError.
+    Any failure (embedding, generation) is wrapped as TechniqueError.
     """
+    from llm import get_generation_provider  # for the per-provider image cap
+
     start = time.perf_counter()
     try:
         chunks = retrieve(question, k=k)
         max_images = get_generation_provider().max_images
-        text, usage = _generate(_build_contents(question, chunks, max_images))
+        generation = run_generation(_build_contents(question, chunks, max_images),
+                                    max_tokens=VISION_MAX_TOKENS)
     except Exception as error:
-        raise MultimodalAnswerError(f"multimodal answer failed: {error}") from error
-    latency_ms = round((time.perf_counter() - start) * 1000, 1)
+        raise TechniqueError(f"multimodal answer failed: {error}") from error
 
     trace = [
         {
@@ -92,18 +79,8 @@ def answer(question, k=5):
         for n, chunk in enumerate(chunks, start=1)
     ]
 
-    est_cost = (
-        usage["input_tokens"] / 1_000_000 * INPUT_USD_PER_1M
-        + usage["output_tokens"] / 1_000_000 * OUTPUT_USD_PER_1M
-    )
     return {
-        "answer": text,
+        "answer": generation.text,
         "trace": trace,
-        "metrics": {
-            **usage,
-            "latency_ms": latency_ms,
-            "est_cost_usd": round(est_cost, 6),
-            "evidence_used": len(trace),
-            "model": active_generation_model(),
-        },
+        "metrics": finalize_metrics(generation, start, evidence_used=len(trace)),
     }

@@ -33,6 +33,10 @@ def _usage(response):
 
 
 class GeminiGeneration(GenerationProvider):
+    # Approximate gemini-2.5-flash-lite rates (USD per 1M tokens); indicative only.
+    input_usd_per_1m = 0.10
+    output_usd_per_1m = 0.40
+
     def __init__(self):
         self.model = settings.GEMINI_MODEL
 

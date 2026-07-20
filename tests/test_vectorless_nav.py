@@ -1,5 +1,6 @@
 import pytest
 
+from llm import Generation
 from vectorless import answer as answer_mod
 from vectorless import navigation as nav_mod
 from vectorless.answer import answer
@@ -39,10 +40,9 @@ def test_answer_reads_selected_sections_and_traces_path(monkeypatch):
     _tree()
     monkeypatch.setattr(nav_mod, "_generate_json", lambda prompt: "[0]")
     monkeypatch.setattr(
-        answer_mod, "_generate",
-        lambda prompt: ("Within 72 hours [1].", {
-            "input_tokens": 30, "output_tokens": 6, "total_tokens": 36
-        }),
+        answer_mod, "run_generation",
+        lambda parts, **kw: Generation(text="Within 72 hours [1].",
+                                       input_tokens=30, output_tokens=6, total_tokens=36),
     )
 
     result = answer("how fast?")

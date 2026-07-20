@@ -9,25 +9,25 @@ Browser ──HTTP/HTMX──► Django (templates + views)
                           │
                           ├── django.contrib.auth  (login gate)
                           ├── ORM ──► Postgres (existing DB; pgvector enabled for Stage 1)
-                          └── chat.gemini ──► Gemini Flash (one call, no retrieval yet)
+                          └── chat.assistant ──► LLM provider (via llm/ adapter; one call, no retrieval)
 ```
 
-Retrieval methods (Stages 1–4) will plug in behind the `chat.gemini` seam and a future
-`retrieval` package. Stage 0 itself contains no document loading or retrieval code.
+Retrieval methods (Stages 1–4) plug in behind the `chat.assistant` seam. Stage 0 itself
+contains no document loading or retrieval code.
 
 ## Main Components
 
 - `config/` — Django project (settings via env, urls, wsgi).
-- `chat/` — the one app: `Conversation` + `Message` models, CRUD views, templates, Gemini client.
-- `chat/gemini.py` — the single seam where the LLM (and later, retrieval) is called. Mockable in tests.
+- `chat/` — the one app: `Conversation` + `Message` models, CRUD views, templates, LLM client.
+- `chat/assistant.py` — the plain-chat seam calling the active LLM provider. Mockable in tests.
 
 ## Data Flow (Stage 0)
 
 1. User logs in (Django auth).
 2. User creates/opens a `Conversation`.
 3. User posts a message → saved as a `Message(role="user")`.
-4. `chat.gemini.generate_reply()` calls the current Gemini Flash model (via the
-   `gemini-flash-latest` alias) with the conversation history.
+4. `chat.assistant.generate_reply()` calls the active generation provider
+   (`settings.LLM_GENERATION_PROVIDER`; default Gemini `gemini-2.5-flash-lite`) with history.
 5. Reply saved as `Message(role="assistant")` and rendered (HTMX swaps in the new turn).
 
 ## Key Decisions
@@ -38,7 +38,7 @@ Retrieval methods (Stages 1–4) will plug in behind the `chat.gemini` seam and 
 | Django built-in auth, not Supabase Auth | Server-rendered app; one identity system; `@login_required` is enough; guards the public deploy | Supabase Auth (JWT bridging friction) |
 | Existing Postgres (with `pgvector`) | Already available; same engine dev→prod; `pgvector` carries into Stage 1 with no migration | Supabase, Render Postgres, SQLite |
 | Postgres everywhere via `DATABASE_URL` | One engine dev/test/prod — no SQLite/Postgres drift | SQLite for local (faster but divergent) |
-| One `chat.gemini` seam | Later stages plug retrieval in here without touching chat CRUD | Scatter LLM calls across views |
+| One `chat.assistant` seam | Later stages plug retrieval in here without touching chat CRUD | Scatter LLM calls across views |
 
 ## Security and failure boundaries
 
@@ -218,12 +218,17 @@ The `evaluation` app compares and measures the four techniques.
 All LLM SDK usage lives in the **`llm/` package**; the rest of the app depends only on its
 interfaces, so a provider is swapped via settings with no code changes.
 
-- `GenerationProvider` (generate / chat / generate_json) and `EmbeddingProvider`
-  (embed_texts / embed_image); `Image`/`Generation` dataclasses; centralised retry/backoff.
-- Concrete: `GeminiGeneration` + `GeminiEmbedding`; `GroqGeneration` (generation only —
-  one model for text/JSON/vision so provider-wide comparison stays fair; reasoning hidden).
-- Factory reads `settings.LLM_GENERATION_PROVIDER` (default `gemini`, or `groq`) and
+- `GenerationProvider` (generate / chat / generate_json, plus `max_images` and per-1M cost
+  rates) and `EmbeddingProvider` (embed_texts / embed_image); `Image`/`Generation` dataclasses;
+  centralised retry/backoff that only retries transient errors (429/5xx/network).
+- Concrete: `GeminiGeneration` + `GeminiEmbedding`; `GroqGeneration` (one model for
+  text/JSON/vision so comparison stays fair; free-tier caps → `max_images=1`); `OpenAIGeneration`
+  (paid; reliable vision + JSON; `max_images=6`).
+- Factory reads `settings.LLM_GENERATION_PROVIDER` (`gemini` | `groq` | `openai`) and
   `LLM_EMBEDDING_PROVIDER`. **Generation is freely swappable; embeddings stay on Gemini**
   (pgvector columns dimension-locked at 3072). Every technique's answer/rerank/extract/
-  navigate/judge and both embedding modules now route through this adapter (the ~8 duplicated
-  retry loops were removed).
+  navigate/judge and both embedding modules route through this adapter (the ~8 duplicated
+  retry loops were removed); the shared `techniques.py` helper assembles each answer's metrics
+  (usage + latency + per-provider est. cost + model) and raises one `TechniqueError`.
+- Output is capped (`GENERATION_MAX_TOKENS`) and questions are length-limited
+  (`MAX_QUESTION_CHARS`) as abuse/cost guardrails on a paid key.

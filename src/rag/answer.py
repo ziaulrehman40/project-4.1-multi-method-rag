@@ -9,7 +9,7 @@ Retrieval uses only the current question (not conversation history) — Stage 1 
 
 import time
 
-from llm import active_generation_model, get_generation_provider
+from techniques import TechniqueError, finalize_metrics, run_generation
 
 from .models import EMBEDDING_DIM
 from .reranking import rerank
@@ -18,24 +18,6 @@ from .retrieval import hybrid_search
 
 DEFAULT_POOL = 10
 DEFAULT_TOP_N = 3
-
-# Approximate Flash rates (USD per 1M tokens). Only used to show an *estimated* cost.
-INPUT_USD_PER_1M = 0.30
-OUTPUT_USD_PER_1M = 2.50
-
-
-class AnswerError(RuntimeError):
-    """Answer generation failed at the provider boundary."""
-
-
-def _generate(prompt):
-    """Generate via the configured provider; return (text, usage-dict). Mockable in tests."""
-    result = get_generation_provider().generate([prompt])
-    return result.text, {
-        "input_tokens": result.input_tokens,
-        "output_tokens": result.output_tokens,
-        "total_tokens": result.total_tokens,
-    }
 
 
 def _build_prompt(question, sources):
@@ -78,25 +60,13 @@ def answer(question, pool=DEFAULT_POOL, top_n=DEFAULT_TOP_N, rerank_enabled=True
             sources.append({"n": n, "source": chunk.source, "ordinal": chunk.ordinal,
                             "text": chunk.text, "score": score, "method": method})
 
-        text, usage = _generate(_build_prompt(question, sources))
+        generation = run_generation(_build_prompt(question, sources))
     except Exception as error:
-        raise AnswerError(f"answer failed: {error}") from error
-    latency_ms = round((time.perf_counter() - start) * 1000, 1)
-
-    est_cost = (
-        usage["input_tokens"] / 1_000_000 * INPUT_USD_PER_1M
-        + usage["output_tokens"] / 1_000_000 * OUTPUT_USD_PER_1M
-    )
+        raise TechniqueError(f"answer failed: {error}") from error
 
     return {
-        "answer": text,
+        "answer": generation.text,
         "sources": sources,
         "rerank_status": rerank_status,
-        "metrics": {
-            **usage,
-            "latency_ms": latency_ms,
-            "est_cost_usd": round(est_cost, 6),
-            "embedding_dim": EMBEDDING_DIM,
-            "model": active_generation_model(),
-        },
+        "metrics": finalize_metrics(generation, start, embedding_dim=EMBEDDING_DIM),
     }

@@ -4,7 +4,7 @@ import pytest
 from django.conf import settings
 
 from multimodal import index as index_mod
-from multimodal.index import build_from_pdf
+from multimodal.index import _markdown_blocks, build_from_markdown, build_from_pdf
 from multimodal.models import MultimodalChunk
 from multimodal.parsing import ParsedItem, parse_pdf
 
@@ -67,3 +67,23 @@ def test_build_skips_caption_row_when_no_context(monkeypatch):
 
     build_from_pdf("doc.pdf", "ignored")
     assert MultimodalChunk.objects.filter(kind="image").count() == 1  # no caption row
+
+
+def test_markdown_blocks_splits_tables_from_prose():
+    text = "Intro prose.\n\n|A|B|\n|---|---|\n|1|2|\n\nMore prose."
+    blocks = _markdown_blocks(text)
+    assert [kind for kind, _ in blocks] == ["text", "table", "text"]
+    table = next(content for kind, content in blocks if kind == "table")
+    assert table.startswith("|A|B|")
+
+
+@pytest.mark.django_db
+def test_build_from_markdown_creates_text_and_table_chunks_no_images(monkeypatch):
+    monkeypatch.setattr(index_mod, "embed_text", lambda t: [0.1] + [0.0] * 3071)
+    md = "## Access\n\nSome prose about access control.\n\n|Ctl|Status|\n|---|---|\n|C-1|Done|"
+
+    build_from_markdown("policy.md", md)
+
+    assert MultimodalChunk.objects.filter(source="policy.md", kind="table").count() == 1
+    assert MultimodalChunk.objects.filter(source="policy.md", kind="text").count() >= 1
+    assert MultimodalChunk.objects.filter(source="policy.md", kind="image").count() == 0
